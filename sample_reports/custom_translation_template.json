@@ -1,0 +1,62 @@
+{
+  "SQL Injection": {
+    "name_zh": "SQL注入",
+    "description_zh": "登录页面存在SQL注入漏洞。攻击者可以通过构造恶意SQL语句获取数据库敏感信息。",
+    "impact_zh": "可能导致数据库数据泄露，包括用户密码、个人信息等敏感数据。",
+    "solution_zh": "1. 使用参数化查询替代字符串拼接\n2. 对用户输入进行严格的输入验证\n3. 使用ORM框架防止SQL注入"
+  },
+  "Cross-Site Scripting (XSS)": {
+    "name_zh": "跨站脚本攻击",
+    "description_zh": "搜索页面存在反射型XSS漏洞。攻击者可以注入恶意JavaScript代码。",
+    "impact_zh": "可能导致用户会话劫持、钓鱼攻击等。",
+    "solution_zh": "1. 对输出进行HTML实体编码\n2. 设置Content-Security-Policy头\n3. 使用XSS过滤库"
+  },
+  "Cross-Site Request Forgery (CSRF)": {
+    "name_zh": "跨站请求伪造",
+    "description_zh": "用户密码修改接口缺少CSRF令牌验证。攻击者可以构造恶意页面诱导用户点击。",
+    "impact_zh": "可能导致用户在不知情的情况下执行敏感操作，如修改密码、转账等。",
+    "solution_zh": "1. 在所有状态修改请求中添加CSRF令牌\n2. 验证Referer头\n3. 使用SameSite Cookie属性"
+  },
+  "Remote Code Execution": {
+    "name_zh": "远程代码执行",
+    "description_zh": "文件上传功能未对文件类型进行有效验证，攻击者可上传WebShell。",
+    "impact_zh": "攻击者可在服务器上执行任意系统命令，完全控制服务器。",
+    "solution_zh": "1. 使用白名单限制上传文件类型\n2. 对上传文件进行内容检测\n3. 将上传文件存储在Web根目录之外"
+  },
+  "Server-Side Request Forgery (SSRF)": {
+    "name_zh": "服务端请求伪造",
+    "description_zh": "图片代理接口未对请求URL进行限制。攻击者可以访问内网资源。",
+    "impact_zh": "可能导致内网服务探测、敏感信息泄露，甚至攻击内网其他系统。",
+    "solution_zh": "1. 对请求URL进行白名单验证\n2. 禁止访问内网IP地址\n3. 限制请求协议为HTTP/HTTPS"
+  },
+  "Insecure Deserialization": {
+    "name_zh": "不安全反序列化",
+    "description_zh": "用户数据反序列化接口使用了不安全的反序列化方法。",
+    "impact_zh": "可能导致远程代码执行、权限提升等严重安全风险。",
+    "solution_zh": "1. 避免对不可信数据进行反序列化\n2. 使用安全的序列化格式（如JSON）\n3. 实施反序列化白名单验证"
+  },
+  "Broken Authentication": {
+    "name_zh": "身份验证失效",
+    "description_zh": "登录接口未实施账户锁定策略，允许暴力破解攻击。",
+    "impact_zh": "攻击者可通过暴力破解获取用户账户凭据。",
+    "solution_zh": "1. 实施账户锁定策略\n2. 使用多因素认证\n3. 添加验证码防止自动化攻击"
+  },
+  "Sensitive Data Exposure": {
+    "name_zh": "敏感数据暴露",
+    "description_zh": "API接口返回了用户密码哈希值等敏感信息。",
+    "impact_zh": "可能导致用户敏感信息泄露，被用于进一步攻击。",
+    "solution_zh": "1. 对敏感数据进行脱敏处理\n2. 实施最小权限原则\n3. 使用TLS加密传输"
+  },
+  "Security Misconfiguration": {
+    "name_zh": "安全配置错误",
+    "description_zh": "生产环境开启了详细错误信息和调试模式。",
+    "impact_zh": "可能暴露应用程序内部结构、数据库连接信息等敏感信息。",
+    "solution_zh": "1. 关闭生产环境调试模式\n2. 自定义错误页面\n3. 移除不必要的服务和功能"
+  },
+  "XML External Entity (XXE)": {
+    "name_zh": "XML外部实体注入",
+    "description_zh": "XML解析接口未禁用外部实体解析功能。",
+    "impact_zh": "可能导致服务器本地文件读取、内网端口扫描、拒绝服务等攻击。",
+    "solution_zh": "1. 禁用XML外部实体解析\n2. 使用安全的XML解析器配置\n3. 对XML输入进行白名单验证"
+  }
+}

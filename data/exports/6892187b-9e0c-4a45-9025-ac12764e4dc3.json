@@ -1,0 +1,161 @@
+{
+  "report_version": "1.0",
+  "lang": "zh",
+  "project_info": {
+    "name": "keytest",
+    "client": "",
+    "tester": "",
+    "date": "2026-04-15",
+    "classification": "",
+    "version": "1.0",
+    "scope": [
+      ""
+    ],
+    "methodology": [
+      ""
+    ],
+    "tools": [
+      ""
+    ]
+  },
+  "statistics": {
+    "total": 7,
+    "by_level": {
+      "critical": 0,
+      "high": 6,
+      "medium": 1,
+      "low": 0,
+      "info": 0
+    },
+    "overall_risk_level": "high",
+    "overall_risk_level_text": "高危",
+    "by_target": {
+      "": 1,
+      "192.168.1.1": 2,
+      "10.0.0.1": 2,
+      "example.com": 1,
+      "192.168.1.100": 1
+    }
+  },
+  "vulnerabilities": [
+    {
+      "id": "0001",
+      "cve_id": "",
+      "name": "test",
+      "risk_level": "high",
+      "risk_level_text": "高危",
+      "target": "",
+      "port": "",
+      "protocol": "",
+      "description": "",
+      "impact": "",
+      "reproduce_steps": [
+        ""
+      ],
+      "remediation": "",
+      "source": "manual"
+    },
+    {
+      "id": "0002",
+      "cve_id": "",
+      "name": "测试漏洞",
+      "risk_level": "high",
+      "risk_level_text": "高危",
+      "target": "192.168.1.1",
+      "port": "8080",
+      "protocol": "",
+      "description": "",
+      "impact": "",
+      "reproduce_steps": [
+        ""
+      ],
+      "remediation": "",
+      "source": "manual"
+    },
+    {
+      "id": "0003",
+      "cve_id": "",
+      "name": "测试漏洞",
+      "risk_level": "high",
+      "risk_level_text": "高危",
+      "target": "192.168.1.1",
+      "port": "8080",
+      "protocol": "",
+      "description": "这是一个测试漏洞",
+      "impact": "",
+      "reproduce_steps": [
+        ""
+      ],
+      "remediation": "",
+      "source": "manual"
+    },
+    {
+      "id": "0004",
+      "cve_id": "",
+      "name": "api-test-vuln",
+      "risk_level": "high",
+      "risk_level_text": "高危",
+      "target": "10.0.0.1",
+      "port": "80",
+      "protocol": "",
+      "description": "test from api",
+      "impact": "",
+      "reproduce_steps": [
+        ""
+      ],
+      "remediation": "",
+      "source": "manual"
+    },
+    {
+      "id": "0005",
+      "cve_id": "",
+      "name": "test",
+      "risk_level": "high",
+      "risk_level_text": "高危",
+      "target": "10.0.0.1",
+      "port": "80",
+      "protocol": "",
+      "description": "test",
+      "impact": "",
+      "reproduce_steps": [
+        ""
+      ],
+      "remediation": "",
+      "source": "manual"
+    },
+    {
+      "id": "0006",
+      "cve_id": "",
+      "name": "Ghost 44.1.8 反射型跨站脚本攻击（XSS）",
+      "risk_level": "medium",
+      "risk_level_text": "中危",
+      "target": "example.com",
+      "port": "",
+      "protocol": "",
+      "description": "Ghost版本44.1.8中存在反射型跨站脚本（XSS）漏洞。Blogging Platform组件在将用户输入回显到HTTP响应中之前未正确编码。攻击者可以构造包含JavaScript代码的恶意URL，当受害者点击该链接时，注入的脚本将在受害者的浏览器会话上下文中执行。这允许攻击者窃取会话Cookie、将用户重定向到恶意网站或代表已认证用户执行操作。",
+      "impact": "",
+      "reproduce_steps": [
+        ""
+      ],
+      "remediation": "",
+      "source": "Burp Suite"
+    },
+    {
+      "id": "0007",
+      "cve_id": "",
+      "name": "MuleSoft 5.7.7-SP7 SQL注入",
+      "risk_level": "high",
+      "risk_level_text": "高危",
+      "target": "192.168.1.100",
+      "port": "8080",
+      "protocol": "TCP",
+      "description": "在MuleSoft版本5.7.7-SP7中发现了SQL注入漏洞。Integration Platform组件在将用户输入用于SQL查询之前未能正确净化。攻击者可以利用此漏洞在后端数据库上执行任意SQL命令，可能未经授权访问敏感数据、修改数据库记录或执行管理操作。该漏洞源于输入验证不足以及在查询构造中使用字符串拼接而非参数化查询或预编译语句。",
+      "impact": "成功利用可能导致攻击者绕过身份验证、从数据库中提取敏感数据（包括用户凭据和个人信息）、修改或删除数据库记录，在某些情况下还可以在数据库服务器上执行操作系统命令。",
+      "reproduce_steps": [
+        ""
+      ],
+      "remediation": "应用供应商提供的补丁或对所有数据库交互使用参数化查询（预编译语句）。实施使用白名单的严格输入验证。部署具有SQL注入检测规则的Web应用防火墙（WAF）。对应用程序使用的数据库账户应用最小权限原则。",
+      "source": "manual"
+    }
+  ]
+}

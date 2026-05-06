@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scan>
+  <Report name="Sample AWVS Scan" startDateTime="2026-04-13T10:00:00" endDateTime="2026-04-13T12:00:00" target="http://192.168.1.100">
+    <ReportItems>
+      <ReportItem id="1">
+        <Name>SQL injection</Name>
+        <Severity>High</Severity>
+        <Affects>http://192.168.1.100/login</Affects>
+        <Description>A SQL injection vulnerability has been discovered in the login page. An attacker can inject malicious SQL statements to extract sensitive data from the database.</Description>
+        <DetailedInformation>URL: http://192.168.1.100/login
+Parameter: username
+Type: Boolean-based blind
+Payload: admin' AND 1=1--</DetailedInformation>
+        <Recommendation>Use parameterized queries or prepared statements. Validate all user input.</Recommendation>
+        <CVE>CVE-2024-0001</CVE>
+      </ReportItem>
+      <ReportItem id="2">
+        <Name>Cross-site scripting</Name>
+        <Severity>Medium</Severity>
+        <Affects>http://192.168.1.100/search</Affects>
+        <Description>A reflected XSS vulnerability exists in the search functionality. An attacker can inject malicious JavaScript code that will be executed in the victim's browser.</Description>
+        <DetailedInformation>URL: http://192.168.1.100/search?q=&lt;script&gt;alert(1)&lt;/script&gt;</DetailedInformation>
+        <Recommendation>Encode all user-supplied output. Implement Content-Security-Policy headers.</Recommendation>
+      </ReportItem>
+      <ReportItem id="3">
+        <Name>Unencrypted HTTP login</Name>
+        <Severity>Medium</Severity>
+        <Affects>http://192.168.1.100/login</Affects>
+        <Description>The login form submits credentials over an unencrypted HTTP connection.</Description>
+        <Recommendation>Implement HTTPS and redirect all HTTP requests to HTTPS.</Recommendation>
+      </ReportItem>
+      <ReportItem id="4">
+        <Name>Directory listing enabled</Name>
+        <Severity>Low</Severity>
+        <Affects>http://192.168.1.100/images/</Affects>
+        <Description>Directory listing is enabled on the /images/ directory, exposing the file structure.</Description>
+        <Recommendation>Disable directory listing in the web server configuration.</Recommendation>
+      </ReportItem>
+      <ReportItem id="5">
+        <Name>Apache Tomcat AJP Ghostcat</Name>
+        <Severity>Critical</Severity>
+        <Affects>http://192.168.1.100:8009</Affects>
+        <Description>The Apache Tomcat AJP connector is vulnerable to file read/include attacks (Ghostcat).</Description>
+        <DetailedInformation>CVE: CVE-2020-1938
+CVSS: 9.8</DetailedInformation>
+        <Recommendation>Upgrade Tomcat to 9.0.31+. Disable AJP if not needed.</Recommendation>
+        <CVE>CVE-2020-1938</CVE>
+      </ReportItem>
+    </ReportItems>
+  </Report>
+</Scan>

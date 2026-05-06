@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>启明星辰天镜 - 脆弱性扫描报告</title></head>
+<body>
+<h1>脆弱性扫描报告</h1>
+<h2>扫描概况</h2>
+<p>扫描范围: 192.168.1.0/24</p>
+<p>扫描时间: 2026-04-13</p>
+<h2>脆弱性列表</h2>
+<table border="1">
+<tr><th>脆弱性名称</th><th>风险等级</th><th>CVE编号</th><th>主机</th><th>端口</th><th>描述</th><th>修复方案</th></tr>
+<tr><td>远程代码执行漏洞</td><td>严重</td><td>CVE-2021-44228</td><td>192.168.1.100</td><td>8080</td><td>Apache Log4j2存在远程代码执行漏洞(Log4Shell)，攻击者可通过JNDI注入实现远程代码执行。</td><td>升级Log4j2至2.17.1或更高版本。设置系统属性log4j2.formatMsgNoLookups=true。</td></tr>
+<tr><td>特权提升漏洞</td><td>高危</td><td>CVE-2021-34527</td><td>192.168.1.100</td><td>445</td><td>Windows Print Spooler服务存在特权提升漏洞(PrintNightmare)，攻击者可获取SYSTEM权限。</td><td>安装微软安全补丁KB5005010。禁用Print Spooler服务(如不需要打印功能)。</td></tr>
+<tr><td>SSL/TLS弱加密套件</td><td>中危</td><td></td><td>192.168.1.100</td><td>443</td><td>SSL/TLS服务支持RC4、DES等弱加密套件。</td><td>禁用弱加密套件。仅启用TLS 1.2及以上版本。配置强加密套件列表。</td></tr>
+<tr><td>信息泄露 - 服务器版本</td><td>低危</td><td></td><td>192.168.1.100</td><td>80</td><td>HTTP响应头中包含服务器版本信息(Apache/2.4.41)。</td><td>隐藏服务器版本信息。自定义错误页面。配置Server头为不显示版本。</td></tr>
+</table>
+</body>
+</html>

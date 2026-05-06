@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "url": "http://192.168.1.100/login.php",
+      "parameter": "username",
+      "type": "boolean-based blind",
+      "title": "Boolean-based blind SQL injection",
+      "payload": "admin' AND 1=1--",
+      "dbms": "MySQL",
+      "technique": "B",
+      "vuln_type": "SQL injection"
+    },
+    {
+      "url": "http://192.168.1.100/search.php",
+      "parameter": "q",
+      "type": "UNION query",
+      "title": "UNION query SQL injection",
+      "payload": "' UNION SELECT 1,2,3,4,5--",
+      "dbms": "MySQL",
+      "technique": "U",
+      "vuln_type": "SQL injection"
+    },
+    {
+      "url": "http://192.168.1.100/api/user",
+      "parameter": "id",
+      "type": "time-based blind",
+      "title": "Time-based blind SQL injection",
+      "payload": "1; WAITFOR DELAY '0:0:5'--",
+      "dbms": "MySQL",
+      "technique": "T",
+      "vuln_type": "SQL injection"
+    }
+  ],
+  "errors": [],
+  "success": true
+}

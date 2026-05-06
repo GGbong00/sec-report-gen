@@ -1,0 +1,105 @@
+{
+  "Report": [
+    {
+      "ReportHost": {
+        "name": "192.168.1.100",
+        "HostProperties": {
+          "tag": [
+            {
+              "name": "host-fqdn",
+              "content": "webserver.example.com"
+            },
+            {
+              "name": "operating-system",
+              "content": "Linux"
+            }
+          ]
+        },
+        "ReportItem": [
+          {
+            "pluginID": "21745",
+            "pluginName": "Apache Tomcat AJP Ghostcat File Read/Include",
+            "severity": 4,
+            "family": "Web Servers",
+            "port": 8009,
+            "protocol": "tcp",
+            "synopsis": "The Apache Tomcat AJP connector is affected by a file read/include vulnerability.",
+            "description": "An attacker can exploit this vulnerability to read web application files from the Tomcat server.",
+            "solution": "Upgrade Apache Tomcat to version 9.0.31 or later.",
+            "cve": "CVE-2020-1938",
+            "cvss_base_score": 9.8,
+            "cvss_vector": "AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "risk_factor": "Critical"
+          },
+          {
+            "pluginID": "11219",
+            "pluginName": "SSL/TLS: Server Supports Weak Cipher Suites",
+            "severity": 2,
+            "family": "General",
+            "port": 443,
+            "protocol": "tcp",
+            "synopsis": "The remote host supports weak cipher suites.",
+            "description": "The SSL/TLS server is configured to support weak cipher suites.",
+            "solution": "Configure the server to disable weak cipher suites.",
+            "cve": "CVE-2014-0160",
+            "cvss_base_score": 5.3,
+            "risk_factor": "Medium"
+          },
+          {
+            "pluginID": "19506",
+            "pluginName": "GNUTLS RSA Key Extraction",
+            "severity": 3,
+            "family": "Misc.",
+            "port": 443,
+            "protocol": "tcp",
+            "synopsis": "The remote host is using a version of GnuTLS that is affected by a key extraction vulnerability.",
+            "description": "The version of GnuTLS installed on the remote host is affected by a vulnerability that allows RSA key extraction.",
+            "solution": "Update GnuTLS to the latest version.",
+            "cve": "CVE-2024-0001",
+            "cvss_base_score": 7.5,
+            "risk_factor": "High"
+          }
+        ]
+      }
+    },
+    {
+      "ReportHost": {
+        "name": "192.168.1.101",
+        "HostProperties": {
+          "tag": [
+            {
+              "name": "host-fqdn",
+              "content": "dbserver.example.com"
+            }
+          ]
+        },
+        "ReportItem": [
+          {
+            "pluginID": "22820",
+            "pluginName": "OpenSSH CBC Mode Ciphers",
+            "severity": 3,
+            "family": "SSH",
+            "port": 22,
+            "protocol": "tcp",
+            "synopsis": "The SSH server supports CBC mode ciphers.",
+            "description": "The remote SSH server is configured to support CBC mode cipher suites which may be vulnerable.",
+            "solution": "Configure SSH to disable CBC mode ciphers.",
+            "risk_factor": "High"
+          },
+          {
+            "pluginID": "15962",
+            "pluginName": "MySQL Weak Password",
+            "severity": 3,
+            "family": "Databases",
+            "port": 3306,
+            "protocol": "tcp",
+            "synopsis": "The MySQL server has a weak password configured.",
+            "description": "The remote MySQL server is using a weak password that can be easily brute-forced.",
+            "solution": "Set a strong password for the MySQL root account.",
+            "risk_factor": "High"
+          }
+        ]
+      }
+    }
+  ]
+}

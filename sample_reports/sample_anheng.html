@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>安恒明鉴 - Web应用漏洞扫描报告</title></head>
+<body>
+<h1>Web应用漏洞扫描报告</h1>
+<h2>扫描信息</h2>
+<p>扫描目标: http://192.168.1.100</p>
+<p>扫描时间: 2026-04-13</p>
+<h2>漏洞详情</h2>
+<table border="1">
+<tr><th>漏洞名称</th><th>危险等级</th><th>URL</th><th>描述</th><th>解决方案</th></tr>
+<tr><td>SQL注入漏洞</td><td>高危</td><td>http://192.168.1.100/login.php</td><td>登录页面username参数存在SQL注入漏洞，攻击者可获取数据库中的敏感信息。</td><td>使用参数化查询或预编译语句。对所有用户输入进行严格的验证和过滤。</td></tr>
+<tr><td>反射型跨站脚本漏洞</td><td>中危</td><td>http://192.168.1.100/search.php</td><td>搜索页面q参数存在反射型XSS漏洞，攻击者可注入恶意JavaScript代码窃取用户会话。</td><td>对输出进行HTML实体编码。设置Content-Security-Policy响应头。</td></tr>
+<tr><td>文件上传漏洞</td><td>高危</td><td>http://192.168.1.100/upload.php</td><td>文件上传功能未对文件类型进行有效限制，攻击者可上传WebShell获取服务器控制权。</td><td>使用白名单限制上传文件类型。对上传文件进行内容检测。将上传目录配置为不可执行。</td></tr>
+<tr><td>目录遍历漏洞</td><td>中危</td><td>http://192.168.1.100/download.php?file=../../../etc/passwd</td><td>下载功能file参数存在目录遍历漏洞，攻击者可读取服务器上的任意文件。</td><td>对文件路径参数进行严格的白名单验证。使用basename()函数获取文件名。</td></tr>
+</table>
+</body>
+</html>

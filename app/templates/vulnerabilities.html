@@ -1,0 +1,1555 @@
+{% extends "base.html" %}
+
+{% block title %}{{ i18n('app_title') }} - {{ i18n('nav_vulns') }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 页面标题和操作栏 -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-accent-orange/10 border border-accent-orange/20 flex items-center justify-center">
+                <i class="fas fa-bug text-accent-orange"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-white" data-i18n="vuln_list">{{ i18n('vuln_list') }}</h1>
+                <p class="text-gray-500 text-sm"><span id="vuln-total-count">0</span> {{ i18n('stats_total_vulns') }}</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+            <!-- 搜索框 -->
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+                <input type="text" id="vuln-search" placeholder="{{ i18n('search') }}..." class="search-input pl-9 pr-4 py-2" oninput="filterVulns()">
+            </div>
+            <!-- 筛选 -->
+            <select id="vuln-severity-filter" class="filter-select" onchange="filterVulns()">
+                <option value="">{{ i18n('filter') }}: {{ i18n('vuln_severity') }}</option>
+                <option value="critical">{{ i18n('severity_critical') }}</option>
+                <option value="high">{{ i18n('severity_high') }}</option>
+                <option value="medium">{{ i18n('severity_medium') }}</option>
+                <option value="low">{{ i18n('severity_low') }}</option>
+                <option value="info">{{ i18n('severity_info') }}</option>
+            </select>
+            <!-- 状态筛选 -->
+            <select id="vuln-status-filter" class="filter-select" onchange="filterVulns()">
+                <option value="">{{ i18n('filter') }}: {{ i18n('vuln_status') }}</option>
+                <option value="discovered">{{ i18n('status_discovered') }}</option>
+                <option value="confirmed">{{ i18n('status_confirmed') }}</option>
+                <option value="fixing">{{ i18n('status_fixing') }}</option>
+                <option value="fixed">{{ i18n('status_fixed') }}</option>
+                <option value="verified">{{ i18n('status_verified') }}</option>
+                <option value="closed">{{ i18n('status_closed') }}</option>
+            </select>
+            <!-- 扫描器来源筛选 -->
+            <select id="vuln-source-filter" class="filter-select" onchange="filterVulns()">
+                <option value="">{{ i18n('vuln_filter_source_all') }}</option>
+            </select>
+            <!-- 视图切换 -->
+            <div class="view-toggle-group">
+                <button class="view-toggle-btn active" id="btn-list-view" onclick="switchView('list')" title="{{ i18n('list_view') }}">
+                    <i class="fas fa-list mr-1"></i>{{ i18n('list_view') if i18n('list_view') != 'list_view' else 'List' }}
+                </button>
+                <button class="view-toggle-btn" id="btn-kanban-view" onclick="switchView('kanban')" title="{{ i18n('kanban_view') }}">
+                    <i class="fas fa-columns mr-1"></i>{{ i18n('kanban_view') if i18n('kanban_view') != 'kanban_view' else 'Kanban' }}
+                </button>
+            </div>
+            <!-- 添加漏洞按钮 -->
+            <button onclick="openAddVulnModal()" class="btn-primary">
+                <i class="fas fa-plus mr-1.5"></i>{{ i18n('add') }}
+            </button>
+            <!-- 一键翻译全部按钮 -->
+            <button onclick="translateAllVulns()" class="btn-secondary" id="translate-all-btn" title="Translate all vulnerabilities to Chinese">
+                <i class="fas fa-language mr-1.5"></i>{{ i18n('translate_all') if i18n('translate_all') != 'translate_all' else 'Translate All' }}
+            </button>
+            <!-- 翻译管理按钮 -->
+            <button onclick="openTranslationManager()" class="btn-secondary" title="Manage custom translation dictionary">
+                <i class="fas fa-book mr-1.5"></i><span id="translation-mgr-btn-text">{{ i18n('translation_mgr') if i18n('translation_mgr') != 'translation_mgr' else 'Translation Mgr' }}</span>
+            </button>
+            <!-- 去重按钮 -->
+            <button onclick="deduplicateVulns()" class="btn-secondary" id="dedup-btn" title="{{ i18n('dedup_title') if i18n('dedup_title') != 'dedup_title' else 'Deduplicate' }}">
+                <i class="fas fa-clone mr-1.5"></i>{{ i18n('dedup_title') if i18n('dedup_title') != 'dedup_title' else 'Dedup' }}
+            </button>
+        </div>
+    </div>
+
+    <!-- 批量操作栏 -->
+    <div id="batch-actions" class="hidden card">
+        <div class="card-body flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="select-all-vulns" onchange="toggleSelectAll(this)" class="accent-accent-blue">
+                    <span class="text-sm text-gray-400" data-i18n="vuln_select_all">{{ i18n('vuln_select_all') }}</span>
+                </label>
+                <span class="text-sm text-gray-500" id="selected-count">0 selected</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="batchDelete()" class="btn-danger-sm">
+                    <i class="fas fa-trash mr-1"></i>{{ i18n('vuln_batch_delete') }}
+                </button>
+                <button onclick="clearAllVulns()" class="btn-danger-sm">
+                    <i class="fas fa-broom mr-1"></i>{{ i18n('settings_clear_data') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 列表视图 -->
+    <div id="list-view-section">
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="vuln-table" id="vuln-table">
+                        <thead>
+                            <tr>
+                                <th class="w-10">
+                                    <input type="checkbox" id="select-all-header" onchange="toggleSelectAll(this)" class="accent-accent-blue">
+                                </th>
+                                <th class="cursor-pointer" onclick="sortVulns('vuln_id')">
+                                    {{ i18n('vuln_id') }} <i class="fas fa-sort text-gray-600 ml-1"></i>
+                                </th>
+                                <th class="cursor-pointer" onclick="sortVulns('name')">
+                                    {{ i18n('vuln_name') }} <i class="fas fa-sort text-gray-600 ml-1"></i>
+                                </th>
+                                <th class="cursor-pointer" onclick="sortVulns('severity')">
+                                    {{ i18n('vuln_severity') }} <i class="fas fa-sort text-gray-600 ml-1"></i>
+                                </th>
+                                <th class="cursor-pointer" onclick="sortVulns('cvss_score')">
+                                    {{ i18n('cvss_score') }} <i class="fas fa-sort text-gray-600 ml-1"></i>
+                                </th>
+                                <th class="cursor-pointer" onclick="sortVulns('status')">
+                                    {{ i18n('vuln_status') }} <i class="fas fa-sort text-gray-600 ml-1"></i>
+                                </th>
+                                <th class="cursor-pointer" onclick="sortVulns('target')">
+                                    {{ i18n('vuln_target') }} <i class="fas fa-sort text-gray-600 ml-1"></i>
+                                </th>
+                                <th class="cursor-pointer" onclick="sortVulns('port')">
+                                    {{ i18n('vuln_port') }} <i class="fas fa-sort text-gray-600 ml-1"></i>
+                                </th>
+                                <th>{{ i18n('vuln_source') }}</th>
+                                <th>{{ i18n('actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vuln-table-body">
+                            <tr>
+                                <td colspan="10" class="text-center py-12 text-gray-500">
+                                    <i class="fas fa-inbox text-3xl mb-3 block"></i>
+                                    {{ i18n('no_data') }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分页控件 -->
+        <div id="pagination-controls" class="hidden flex items-center justify-between mt-4 px-2">
+            <div class="flex items-center space-x-3">
+                <span class="text-sm text-gray-500" id="pagination-info">-</span>
+                <select id="page-size-select" class="filter-select text-xs py-1" onchange="changePageSize()">
+                    <option value="20">20</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+                <span class="text-xs text-gray-500">{{ i18n('stats_total_vulns') if i18n('stats_total_vulns') != 'stats_total_vulns' else 'per page' }}</span>
+            </div>
+            <div class="flex items-center space-x-1">
+                <button onclick="goToPage('first')" class="btn-secondary text-xs px-2 py-1" title="First">
+                    <i class="fas fa-angles-left"></i>
+                </button>
+                <button onclick="goToPage('prev')" class="btn-secondary text-xs px-2 py-1" id="pagination-prev-btn">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="text-sm text-gray-400 px-3" id="pagination-page-num">1 / 1</span>
+                <button onclick="goToPage('next')" class="btn-secondary text-xs px-2 py-1" id="pagination-next-btn">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <button onclick="goToPage('last')" class="btn-secondary text-xs px-2 py-1" title="Last">
+                    <i class="fas fa-angles-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 看板视图 (hidden by default) -->
+    <div id="kanban-view-section" class="hidden">
+        <div class="kanban-board" id="kanban-board">
+            <!-- 已发现 -->
+            <div class="kanban-column" data-status="discovered"
+                 ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'discovered')" ondragleave="kanbanDragLeave(event)">
+                <div class="kanban-column-header">
+                    <span><i class="fas fa-search mr-1.5 text-accent-blue"></i>{{ i18n('status_discovered') if i18n('status_discovered') != 'status_discovered' else 'Discovered' }}</span>
+                    <span class="count-badge" id="kanban-count-discovered">0</span>
+                </div>
+                <div class="kanban-column-body" id="kanban-body-discovered"></div>
+            </div>
+            <!-- 已确认 -->
+            <div class="kanban-column" data-status="confirmed"
+                 ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'confirmed')" ondragleave="kanbanDragLeave(event)">
+                <div class="kanban-column-header">
+                    <span><i class="fas fa-check-circle mr-1.5 text-accent-orange"></i>{{ i18n('status_confirmed') if i18n('status_confirmed') != 'status_confirmed' else 'Confirmed' }}</span>
+                    <span class="count-badge" id="kanban-count-confirmed">0</span>
+                </div>
+                <div class="kanban-column-body" id="kanban-body-confirmed"></div>
+            </div>
+            <!-- 修复中 -->
+            <div class="kanban-column" data-status="fixing"
+                 ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'fixing')" ondragleave="kanbanDragLeave(event)">
+                <div class="kanban-column-header">
+                    <span><i class="fas fa-wrench mr-1.5 text-accent-yellow"></i>{{ i18n('status_fixing') if i18n('status_fixing') != 'status_fixing' else 'Fixing' }}</span>
+                    <span class="count-badge" id="kanban-count-fixing">0</span>
+                </div>
+                <div class="kanban-column-body" id="kanban-body-fixing"></div>
+            </div>
+            <!-- 已修复 -->
+            <div class="kanban-column" data-status="fixed"
+                 ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'fixed')" ondragleave="kanbanDragLeave(event)">
+                <div class="kanban-column-header">
+                    <span><i class="fas fa-tools mr-1.5 text-accent-green"></i>{{ i18n('status_fixed') if i18n('status_fixed') != 'status_fixed' else 'Fixed' }}</span>
+                    <span class="count-badge" id="kanban-count-fixed">0</span>
+                </div>
+                <div class="kanban-column-body" id="kanban-body-fixed"></div>
+            </div>
+            <!-- 已验证 -->
+            <div class="kanban-column" data-status="verified"
+                 ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'verified')" ondragleave="kanbanDragLeave(event)">
+                <div class="kanban-column-header">
+                    <span><i class="fas fa-shield-halved mr-1.5" style="color:#a78bfa"></i>{{ i18n('status_verified') if i18n('status_verified') != 'status_verified' else 'Verified' }}</span>
+                    <span class="count-badge" id="kanban-count-verified">0</span>
+                </div>
+                <div class="kanban-column-body" id="kanban-body-verified"></div>
+            </div>
+            <!-- 已关闭 -->
+            <div class="kanban-column" data-status="closed"
+                 ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event, 'closed')" ondragleave="kanbanDragLeave(event)">
+                <div class="kanban-column-header">
+                    <span><i class="fas fa-times-circle mr-1.5 text-gray-500"></i>{{ i18n('status_closed') if i18n('status_closed') != 'status_closed' else 'Closed' }}</span>
+                    <span class="count-badge" id="kanban-count-closed">0</span>
+                </div>
+                <div class="kanban-column-body" id="kanban-body-closed"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modal %}
+<!-- 添加/编辑漏洞模态框 -->
+<div id="vuln-modal" class="hidden">
+    <div class="modal-box max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="modal-header">
+            <h3 class="text-lg font-bold text-white" id="vuln-modal-title">{{ i18n('add') }}</h3>
+            <button onclick="closeModal()" class="text-gray-500 hover:text-white transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="vuln-form" onsubmit="saveVuln(event)">
+            <input type="hidden" id="vuln-edit-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+                <div>
+                    <label class="form-label">{{ i18n('vuln_id') }} (CVE)</label>
+                    <input type="text" id="vuln-form-vuln_id" class="form-input" placeholder="CVE-XXXX-XXXX">
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_name') }} <span class="text-accent-red">*</span></label>
+                    <input type="text" id="vuln-form-name" class="form-input" required placeholder="{{ i18n('vuln_name') }}">
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_severity') }}</label>
+                    <select id="vuln-form-severity" class="form-input">
+                        <option value="critical">{{ i18n('severity_critical') }}</option>
+                        <option value="high">{{ i18n('severity_high') }}</option>
+                        <option value="medium" selected>{{ i18n('severity_medium') }}</option>
+                        <option value="low">{{ i18n('severity_low') }}</option>
+                        <option value="info">{{ i18n('severity_info') }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_status') }}</label>
+                    <select id="vuln-form-status" class="form-input">
+                        <option value="discovered">{{ i18n('status_discovered') if i18n('status_discovered') != 'status_discovered' else 'Discovered' }}</option>
+                        <option value="confirmed">{{ i18n('status_confirmed') if i18n('status_confirmed') != 'status_confirmed' else 'Confirmed' }}</option>
+                        <option value="fixing">{{ i18n('status_fixing') if i18n('status_fixing') != 'status_fixing' else 'Fixing' }}</option>
+                        <option value="fixed">{{ i18n('status_fixed') if i18n('status_fixed') != 'status_fixed' else 'Fixed' }}</option>
+                        <option value="verified">{{ i18n('status_verified') if i18n('status_verified') != 'status_verified' else 'Verified' }}</option>
+                        <option value="closed">{{ i18n('status_closed') if i18n('status_closed') != 'status_closed' else 'Closed' }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_target') }}</label>
+                    <input type="text" id="vuln-form-target" class="form-input" placeholder="192.168.1.1 / example.com">
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_port') }}</label>
+                    <input type="text" id="vuln-form-port" class="form-input" placeholder="80, 443">
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_protocol') }}</label>
+                    <input type="text" id="vuln-form-protocol" class="form-input" placeholder="TCP / UDP / HTTP">
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_source') }}</label>
+                    <input type="text" id="vuln-form-scanner_source" class="form-input" placeholder="manual" value="manual">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="form-label">{{ i18n('cvss_score') if i18n('cvss_score') != 'cvss_score' else 'CVSS Vector' }}</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="vuln-form-cvss_vector" class="form-input flex-1" placeholder="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H" oninput="onCvssVectorInput(this.value)">
+                        <span class="cvss-badge cvss-none" id="cvss-score-preview" style="min-width:3rem;">0.0</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1" id="cvss-vector-hint"></p>
+                </div>
+            </div>
+            <div class="px-6 space-y-4">
+                <div>
+                    <label class="form-label">{{ i18n('vuln_description') }}</label>
+                    <textarea id="vuln-form-description" class="form-input h-24 resize-y" placeholder="{{ i18n('vuln_description') }}"></textarea>
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_impact') }}</label>
+                    <textarea id="vuln-form-impact" class="form-input h-20 resize-y" placeholder="{{ i18n('vuln_impact') }}"></textarea>
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_solution') }}</label>
+                    <textarea id="vuln-form-solution" class="form-input h-20 resize-y" placeholder="{{ i18n('vuln_solution') }}"></textarea>
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_poc_steps') }}</label>
+                    <textarea id="vuln-form-poc_steps" class="form-input h-20 resize-y" placeholder="{{ i18n('vuln_poc_steps') }}"></textarea>
+                </div>
+                <div>
+                    <label class="form-label">{{ i18n('vuln_evidence') }}</label>
+                    <textarea id="vuln-form-evidence" class="form-input h-20 resize-y" placeholder="{{ i18n('vuln_evidence') }}"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeModal()" class="btn-secondary">{{ i18n('cancel') }}</button>
+                <button type="submit" class="btn-primary" id="vuln-save-btn">
+                    <i class="fas fa-save mr-1.5"></i>{{ i18n('save') }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 翻译管理模态框 -->
+<div id="translation-mgr-modal" class="hidden">
+    <div class="modal-box max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="modal-header">
+            <h3 class="text-lg font-bold text-white" id="translation-mgr-title">
+                <i class="fas fa-book mr-2 text-accent-blue"></i>Translation Manager
+            </h3>
+            <button onclick="closeModal()" class="text-gray-500 hover:text-white transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-5">
+            <!-- 统计信息 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="translation-stats-grid">
+                <div class="bg-dark-700/50 rounded-lg p-3 text-center border border-dark-600">
+                    <div class="text-2xl font-bold text-accent-blue" id="stat-custom-total">-</div>
+                    <div class="text-xs text-gray-500 mt-1">Custom Entries</div>
+                </div>
+                <div class="bg-dark-700/50 rounded-lg p-3 text-center border border-dark-600">
+                    <div class="text-2xl font-bold text-accent-green" id="stat-builtin-vuln">-</div>
+                    <div class="text-xs text-gray-500 mt-1">Vuln Types</div>
+                </div>
+                <div class="bg-dark-700/50 rounded-lg p-3 text-center border border-dark-600">
+                    <div class="text-2xl font-bold text-accent-orange" id="stat-builtin-terms">-</div>
+                    <div class="text-xs text-gray-500 mt-1">Security Terms</div>
+                </div>
+                <div class="bg-dark-700/50 rounded-lg p-3 text-center border border-dark-600">
+                    <div class="text-2xl font-bold text-accent-yellow" id="stat-builtin-phrases">-</div>
+                    <div class="text-xs text-gray-500 mt-1">Phrase Patterns</div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex flex-wrap gap-2">
+                <label class="btn-primary cursor-pointer">
+                    <i class="fas fa-file-import mr-1.5"></i>Import
+                    <input type="file" id="translation-import-file" accept=".csv,.json" class="hidden" onchange="importTranslationFile(this)">
+                </label>
+                <button onclick="exportTranslations('json')" class="btn-secondary">
+                    <i class="fas fa-file-export mr-1.5"></i>Export JSON
+                </button>
+                <button onclick="exportTranslations('csv')" class="btn-secondary">
+                    <i class="fas fa-file-csv mr-1.5"></i>Export CSV
+                </button>
+            </div>
+
+            <!-- 搜索框 -->
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+                <input type="text" id="translation-search" placeholder="Search translation entries..." class="search-input pl-9 pr-4 py-2 w-full" oninput="searchTranslations()">
+            </div>
+
+            <!-- 条目列表 -->
+            <div class="border border-dark-600 rounded-lg overflow-hidden">
+                <div class="overflow-x-auto max-h-[40vh] overflow-y-auto">
+                    <table class="w-full text-sm" id="translation-table">
+                        <thead class="bg-dark-700 sticky top-0 z-10">
+                            <tr>
+                                <th class="text-left px-4 py-2.5 text-gray-400 font-medium border-b border-dark-600">Key (EN)</th>
+                                <th class="text-left px-4 py-2.5 text-gray-400 font-medium border-b border-dark-600">Name (ZH)</th>
+                                <th class="text-left px-4 py-2.5 text-gray-400 font-medium border-b border-dark-600 hidden sm:table-cell">Description (ZH)</th>
+                                <th class="text-center px-4 py-2.5 text-gray-400 font-medium border-b border-dark-600 w-20">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="translation-table-body">
+                            <tr>
+                                <td colspan="4" class="text-center py-8 text-gray-500">
+                                    <i class="fas fa-spinner fa-spin text-xl mb-2 block"></i>
+                                    Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            <div class="flex items-center justify-between" id="translation-pagination">
+                <span class="text-sm text-gray-500" id="translation-page-info">-</span>
+                <div class="flex items-center space-x-1">
+                    <button onclick="loadTranslationPage('prev')" class="btn-secondary text-xs px-3 py-1" id="translation-prev-btn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="text-sm text-gray-400 px-2" id="translation-page-num">1</span>
+                    <button onclick="loadTranslationPage('next')" class="btn-secondary text-xs px-3 py-1" id="translation-next-btn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let allVulns = [];
+let filteredVulns = [];
+let sortField = 'severity';
+let sortDir = 'desc';
+let selectedIds = new Set();
+let currentView = 'list'; // 'list' or 'kanban'
+
+// Pagination
+let currentPage = 1;
+let pageSize = 50;
+
+// Kanban drag state
+let draggedVulnId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadVulns();
+    loadScannerSourceOptions();
+    // 监听数据变更事件（导入/删除等操作后自动刷新）
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'sec_report_data_updated') {
+            loadVulns();
+            loadScannerSourceOptions();
+        }
+    });
+});
+
+// ============================================================
+// Data Loading
+// ============================================================
+
+function loadVulns() {
+    fetch('/api/vulnerabilities')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                allVulns = Array.isArray(data.vulnerabilities) ? data.vulnerabilities : [];
+                applyFiltersAndRender();
+            }
+        })
+        .catch(err => console.error('Failed to load vulnerabilities:', err));
+}
+
+function loadScannerSourceOptions() {
+    fetch('/api/vulnerabilities/scanner-sources')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('vuln-source-filter');
+            if (!select) return;
+            if (data.success && data.sources && data.sources.length > 0) {
+                // Keep the first "all" option, add the rest
+                data.sources.forEach(source => {
+                    const opt = document.createElement('option');
+                    opt.value = source;
+                    opt.textContent = source;
+                    select.appendChild(opt);
+                });
+            }
+        })
+        .catch(err => console.error('Failed to load scanner sources:', err));
+}
+
+function applyFiltersAndRender() {
+    let filtered = [...(Array.isArray(allVulns) ? allVulns : [])];
+
+    // 搜索过滤
+    const search = document.getElementById('vuln-search').value.toLowerCase();
+    if (search) {
+        filtered = filtered.filter(v =>
+            (v.name || '').toLowerCase().includes(search) ||
+            (v.vuln_id || '').toLowerCase().includes(search) ||
+            (v.target || '').toLowerCase().includes(search) ||
+            (v.scanner_source || '').toLowerCase().includes(search) ||
+            (v.description || '').toLowerCase().includes(search)
+        );
+    }
+
+    // 严重程度过滤
+    const sevFilter = document.getElementById('vuln-severity-filter').value;
+    if (sevFilter) {
+        filtered = filtered.filter(v => v.severity === sevFilter);
+    }
+
+    // 状态过滤
+    const statusFilter = document.getElementById('vuln-status-filter').value;
+    if (statusFilter) {
+        filtered = filtered.filter(v => (v.status || 'discovered') === statusFilter);
+    }
+
+    // 扫描器来源过滤
+    const sourceFilter = document.getElementById('vuln-source-filter').value;
+    if (sourceFilter) {
+        filtered = filtered.filter(v => (v.scanner_source || '') === sourceFilter);
+    }
+
+    // 排序
+    const severityOrder = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
+    filtered.sort((a, b) => {
+        let va = a[sortField] || '';
+        let vb = b[sortField] || '';
+        if (sortField === 'severity') {
+            va = severityOrder[va] || 0;
+            vb = severityOrder[vb] || 0;
+        } else if (sortField === 'cvss_score') {
+            va = parseFloat(va) || 0;
+            vb = parseFloat(vb) || 0;
+        } else {
+            va = String(va).toLowerCase();
+            vb = String(vb).toLowerCase();
+        }
+        if (va < vb) return sortDir === 'asc' ? -1 : 1;
+        if (va > vb) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    filteredVulns = filtered;
+    document.getElementById('vuln-total-count').textContent = allVulns.length;
+
+    if (currentView === 'list') {
+        renderListView();
+    } else {
+        renderKanbanView();
+    }
+}
+
+// ============================================================
+// List View Rendering
+// ============================================================
+
+function renderListView() {
+    const tbody = document.getElementById('vuln-table-body');
+    const totalItems = filteredVulns.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = startIdx + pageSize;
+    const pageItems = filteredVulns.slice(startIdx, endIdx);
+
+    if (totalItems === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-12 text-gray-500">
+                    <i class="fas fa-inbox text-3xl mb-3 block"></i>
+                    ${currentLang === 'zh' ? '暂无数据' : 'No data available'}
+                </td>
+            </tr>`;
+        document.getElementById('pagination-controls').classList.add('hidden');
+        updateBatchActions();
+        return;
+    }
+
+    tbody.innerHTML = pageItems.map(v => {
+        const cvssScore = parseFloat(v.cvss_score) || 0;
+        const cvssClass = getCvssBadgeClass(cvssScore);
+        const status = v.status || 'discovered';
+        const statusLabel = getStatusLabel(status);
+        const statusClass = getStatusBadgeClass(status);
+
+        return `
+        <tr class="hover:bg-dark-600/30 transition-colors">
+            <td>
+                <input type="checkbox" class="vuln-checkbox accent-accent-blue" data-id="${v.id}"
+                    ${selectedIds.has(v.id) ? 'checked' : ''} onchange="toggleSelect('${v.id}', this)">
+            </td>
+            <td class="text-accent-blue font-mono text-sm">${escapeHtml(v.vuln_id || '-')}</td>
+            <td class="text-white font-medium max-w-xs truncate" title="${escapeHtml(v.name)}">${escapeHtml(v.name)}</td>
+            <td><span class="severity-badge severity-${v.severity}">${getSeverityLabel(v.severity)}</span></td>
+            <td>${cvssScore > 0 ? `<span class="cvss-badge ${cvssClass}">${cvssScore.toFixed(1)}</span>` : '<span class="text-gray-600">-</span>'}</td>
+            <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+            <td class="text-gray-300 font-mono text-sm">${escapeHtml(v.target || '-')}</td>
+            <td class="text-gray-400 font-mono text-sm">${escapeHtml(v.port || '-')}</td>
+            <td class="text-gray-500 text-sm">${escapeHtml(v.scanner_source || '-')}</td>
+            <td>
+                <div class="flex items-center space-x-1">
+                    <button onclick="translateSingleVuln('${v.id}')" class="action-btn-edit" title="{{ i18n('translate') if i18n('translate') != 'translate' else 'Translate' }}">
+                        <i class="fas fa-language"></i>
+                    </button>
+                    <button onclick="openEditVulnModal('${v.id}')" class="action-btn-edit" title="{{ i18n('edit') }}">
+                        <i class="fas fa-pen-to-square"></i>
+                    </button>
+                    <button onclick="deleteVuln('${v.id}')" class="action-btn-delete" title="{{ i18n('delete') }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+
+    // Update pagination controls
+    const paginationDiv = document.getElementById('pagination-controls');
+    if (totalItems > pageSize) {
+        paginationDiv.classList.remove('hidden');
+        document.getElementById('pagination-info').textContent =
+            `${startIdx + 1}-${Math.min(endIdx, totalItems)} / ${totalItems}`;
+        document.getElementById('pagination-page-num').textContent = `${currentPage} / ${totalPages}`;
+    } else {
+        paginationDiv.classList.add('hidden');
+    }
+
+    updateBatchActions();
+}
+
+// ============================================================
+// Pagination
+// ============================================================
+
+function goToPage(direction) {
+    const totalPages = Math.max(1, Math.ceil(filteredVulns.length / pageSize));
+    if (direction === 'first') {
+        currentPage = 1;
+    } else if (direction === 'prev' && currentPage > 1) {
+        currentPage--;
+    } else if (direction === 'next' && currentPage < totalPages) {
+        currentPage++;
+    } else if (direction === 'last') {
+        currentPage = totalPages;
+    }
+    renderListView();
+}
+
+function changePageSize() {
+    pageSize = parseInt(document.getElementById('page-size-select').value) || 50;
+    currentPage = 1;
+    renderListView();
+}
+
+// ============================================================
+// Kanban View
+// ============================================================
+
+function renderKanbanView() {
+    const statuses = ['discovered', 'confirmed', 'fixing', 'fixed', 'verified', 'closed'];
+
+    statuses.forEach(status => {
+        const body = document.getElementById('kanban-body-' + status);
+        const countEl = document.getElementById('kanban-count-' + status);
+        const vulns = filteredVulns.filter(v => (v.status || 'discovered') === status);
+
+        if (countEl) countEl.textContent = vulns.length;
+
+        if (!body) return;
+
+        if (vulns.length === 0) {
+            body.innerHTML = '<div class="text-center text-gray-600 text-xs py-4">' +
+                (currentLang === 'zh' ? '拖拽漏洞卡片到此处' : 'Drag vulnerability cards here') + '</div>';
+            return;
+        }
+
+        body.innerHTML = vulns.map(v => {
+            const cvssScore = parseFloat(v.cvss_score) || 0;
+            const cvssClass = getCvssBadgeClass(cvssScore);
+            return `
+            <div class="kanban-card" draggable="true"
+                 data-vuln-id="${v.id}"
+                 ondragstart="kanbanDragStart(event, '${v.id}')"
+                 ondragend="kanbanDragEnd(event)"
+                 onclick="openEditVulnModal('${v.id}')">
+                <div class="severity-indicator severity-${v.severity}"></div>
+                <div class="card-title">${escapeHtml(v.name)}</div>
+                <div class="card-meta">
+                    <span class="severity-badge severity-${v.severity}" style="font-size:0.6rem;padding:0.05rem 0.4rem;">${getSeverityLabel(v.severity)}</span>
+                    ${cvssScore > 0 ? `<span class="cvss-badge ${cvssClass}" style="font-size:0.6rem;padding:0.05rem 0.3rem;margin-left:0.25rem;">${cvssScore.toFixed(1)}</span>` : ''}
+                    <span style="margin-left:0.25rem;">${escapeHtml(v.target || '-')}</span>
+                    ${v.port ? '<span style="margin-left:0.25rem;">:' + escapeHtml(v.port) + '</span>' : ''}
+                </div>
+            </div>`;
+        }).join('');
+    });
+}
+
+function kanbanDragStart(event, vulnId) {
+    draggedVulnId = vulnId;
+    event.target.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', vulnId);
+}
+
+function kanbanDragEnd(event) {
+    event.target.classList.remove('dragging');
+    draggedVulnId = null;
+    // Remove all drag-over highlights
+    document.querySelectorAll('.kanban-column-body').forEach(el => {
+        el.classList.remove('drag-over');
+    });
+}
+
+function kanbanDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const body = event.currentTarget;
+    if (body.classList.contains('kanban-column-body')) {
+        body.classList.add('drag-over');
+    }
+}
+
+function kanbanDragLeave(event) {
+    const body = event.currentTarget;
+    if (body.classList.contains('kanban-column-body')) {
+        body.classList.remove('drag-over');
+    }
+}
+
+function kanbanDrop(event, newStatus) {
+    event.preventDefault();
+    const vulnId = event.dataTransfer.getData('text/plain') || draggedVulnId;
+    if (!vulnId) return;
+
+    // Remove drag-over highlights
+    document.querySelectorAll('.kanban-column-body').forEach(el => {
+        el.classList.remove('drag-over');
+    });
+
+    // Update status via API
+    fetch('/api/vulnerabilities/' + vulnId + '/status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Update local data
+            const idx = allVulns.findIndex(v => v.id === vulnId);
+            if (idx !== -1) {
+                allVulns[idx].status = newStatus;
+            }
+            applyFiltersAndRender();
+            const statusLabel = getStatusLabel(newStatus);
+            showToast(
+                currentLang === 'zh'
+                    ? `状态已更新为「${statusLabel}」`
+                    : `Status updated to "${statusLabel}"`,
+                'success'
+            );
+        } else {
+            showToast(data.message || 'Failed to update status', 'error');
+        }
+    })
+    .catch(err => {
+        showToast(currentLang === 'zh' ? '状态更新失败' : 'Failed to update status', 'error');
+    });
+}
+
+// ============================================================
+// View Switching
+// ============================================================
+
+function switchView(view) {
+    currentView = view;
+    const listSection = document.getElementById('list-view-section');
+    const kanbanSection = document.getElementById('kanban-view-section');
+    const btnList = document.getElementById('btn-list-view');
+    const btnKanban = document.getElementById('btn-kanban-view');
+
+    if (view === 'list') {
+        listSection.classList.remove('hidden');
+        kanbanSection.classList.add('hidden');
+        btnList.classList.add('active');
+        btnKanban.classList.remove('active');
+    } else {
+        listSection.classList.add('hidden');
+        kanbanSection.classList.remove('hidden');
+        btnList.classList.remove('active');
+        btnKanban.classList.add('active');
+    }
+
+    applyFiltersAndRender();
+}
+
+// ============================================================
+// CVSS Helpers
+// ============================================================
+
+function getCvssBadgeClass(score) {
+    if (score >= 9.0) return 'cvss-critical';
+    if (score >= 7.0) return 'cvss-high';
+    if (score >= 4.0) return 'cvss-medium';
+    if (score > 0) return 'cvss-low';
+    return 'cvss-none';
+}
+
+function onCvssVectorInput(vectorStr) {
+    const preview = document.getElementById('cvss-score-preview');
+    const hint = document.getElementById('cvss-vector-hint');
+
+    if (!vectorStr || !vectorStr.trim().startsWith('CVSS:3.1')) {
+        preview.textContent = '-';
+        preview.className = 'cvss-badge cvss-none';
+        hint.textContent = '';
+        return;
+    }
+
+    // Call server-side CVSS calculation
+    fetch('/api/cvss/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vector: vectorStr.trim() }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const score = data.score;
+            const severity = data.severity;
+            preview.textContent = score.toFixed(1);
+            preview.className = 'cvss-badge ' + getCvssBadgeClass(score);
+            hint.textContent = severity.charAt(0).toUpperCase() + severity.slice(1);
+            hint.style.color = preview.style.color;
+        } else {
+            preview.textContent = '-';
+            preview.className = 'cvss-badge cvss-none';
+            hint.textContent = data.message || (currentLang === 'zh' ? '无效的 CVSS 向量' : 'Invalid CVSS vector');
+            hint.style.color = '#ef4444';
+        }
+    })
+    .catch(err => {
+        // Fallback: try client-side calculation
+        const score = clientSideCvssCalc(vectorStr.trim());
+        if (score !== null) {
+            preview.textContent = score.toFixed(1);
+            preview.className = 'cvss-badge ' + getCvssBadgeClass(score);
+            hint.textContent = '';
+        } else {
+            preview.textContent = '-';
+            preview.className = 'cvss-badge cvss-none';
+            hint.textContent = currentLang === 'zh' ? '无效的 CVSS 向量' : 'Invalid CVSS vector';
+            hint.style.color = '#ef4444';
+        }
+    });
+}
+
+function clientSideCvssCalc(vector) {
+    // Basic client-side CVSS calculation as fallback
+    try {
+        const parts = vector.split('/');
+        if (parts.length < 9 || parts[0] !== 'CVSS:3.1') return null;
+
+        const metrics = {};
+        for (let i = 1; i < parts.length; i++) {
+            const [k, v] = parts[i].split(':');
+            metrics[k] = v;
+        }
+
+        const required = ['AV', 'AC', 'PR', 'UI', 'S', 'C', 'I', 'A'];
+        for (const r of required) {
+            if (!metrics[r]) return null;
+        }
+
+        const avMap = { N: 0.85, A: 0.62, L: 0.55, P: 0.20 };
+        const acMap = { L: 0.77, H: 0.44 };
+        const uiMap = { N: 0.85, R: 0.62 };
+        const ciaMap = { H: 0.56, L: 0.22, N: 0.0 };
+
+        const av = avMap[metrics.AV];
+        const ac = acMap[metrics.AC];
+        const ui = uiMap[metrics.UI];
+        const c = ciaMap[metrics.C];
+        const iv = ciaMap[metrics.I];
+        const a = ciaMap[metrics.A];
+        const scopeChanged = metrics.S === 'C';
+
+        let pr;
+        if (scopeChanged) {
+            pr = metrics.PR === 'N' ? 0.85 : metrics.PR === 'L' ? 0.68 : 0.50;
+        } else {
+            pr = metrics.PR === 'N' ? 0.85 : metrics.PR === 'L' ? 0.62 : 0.27;
+        }
+
+        const iss = 1 - ((1 - c) * (1 - iv) * (1 - a));
+        let impact;
+        if (scopeChanged) {
+            impact = 7.52 * (iss - 0.029) - 3.25 * Math.pow(iss - 0.02, 15);
+        } else {
+            impact = 6.42 * iss;
+        }
+
+        if (impact <= 0) return 0.0;
+
+        const exploitability = 8.22 * av * ac * pr * ui;
+        let score = Math.ceil((impact + exploitability) * 10) / 10;
+        return Math.min(10.0, score);
+    } catch (e) {
+        return null;
+    }
+}
+
+// ============================================================
+// Status Helpers
+// ============================================================
+
+function getStatusLabel(status) {
+    const labels = {
+        zh: {
+            discovered: '已发现', confirmed: '已确认', fixing: '修复中',
+            fixed: '已修复', verified: '已验证', closed: '已关闭',
+        },
+        en: {
+            discovered: 'Discovered', confirmed: 'Confirmed', fixing: 'Fixing',
+            fixed: 'Fixed', verified: 'Verified', closed: 'Closed',
+        },
+    };
+    return (labels[currentLang] || labels.zh)[status] || status;
+}
+
+function getStatusBadgeClass(status) {
+    const classes = {
+        discovered: 'status-discovered',
+        confirmed: 'status-confirmed',
+        fixing: 'status-fixing',
+        fixed: 'status-fixed',
+        verified: 'status-verified',
+        closed: 'status-closed',
+    };
+    return classes[status] || 'status-discovered';
+}
+
+// ============================================================
+// Sorting & Filtering
+// ============================================================
+
+function sortVulns(field) {
+    if (sortField === field) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField = field;
+        sortDir = field === 'severity' || field === 'cvss_score' ? 'desc' : 'asc';
+    }
+    applyFiltersAndRender();
+}
+
+function filterVulns() {
+    currentPage = 1;
+    applyFiltersAndRender();
+}
+
+// ============================================================
+// Selection
+// ============================================================
+
+function toggleSelect(id, checkbox) {
+    if (checkbox.checked) {
+        selectedIds.add(id);
+    } else {
+        selectedIds.delete(id);
+    }
+    updateBatchActions();
+}
+
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.vuln-checkbox');
+    if (checkbox.checked) {
+        checkboxes.forEach(cb => {
+            cb.checked = true;
+            selectedIds.add(cb.dataset.id);
+        });
+    } else {
+        checkboxes.forEach(cb => {
+            cb.checked = false;
+        });
+        selectedIds.clear();
+    }
+    updateBatchActions();
+}
+
+function updateBatchActions() {
+    const batchDiv = document.getElementById('batch-actions');
+    const countSpan = document.getElementById('selected-count');
+    if (selectedIds.size > 0) {
+        batchDiv.classList.remove('hidden');
+        countSpan.textContent = selectedIds.size + ' selected';
+    } else {
+        batchDiv.classList.add('hidden');
+    }
+}
+
+// ============================================================
+// CRUD Operations
+// ============================================================
+
+function openAddVulnModal() {
+    document.getElementById('vuln-modal-title').textContent = currentLang === 'zh' ? '添加漏洞' : 'Add Vulnerability';
+    document.getElementById('vuln-edit-id').value = '';
+    document.getElementById('vuln-form').reset();
+    document.getElementById('vuln-form-scanner_source').value = 'manual';
+    document.getElementById('vuln-form-status').value = 'discovered';
+    document.getElementById('cvss-score-preview').textContent = '-';
+    document.getElementById('cvss-score-preview').className = 'cvss-badge cvss-none';
+    document.getElementById('cvss-vector-hint').textContent = '';
+    openModal('vuln-modal');
+}
+
+function openEditVulnModal(id) {
+    const vuln = allVulns.find(v => v.id === id);
+    if (!vuln) return;
+
+    document.getElementById('vuln-modal-title').textContent = currentLang === 'zh' ? '编辑漏洞' : 'Edit Vulnerability';
+    document.getElementById('vuln-edit-id').value = vuln.id;
+    document.getElementById('vuln-form-vuln_id').value = vuln.vuln_id || '';
+    document.getElementById('vuln-form-name').value = vuln.name || '';
+    document.getElementById('vuln-form-severity').value = vuln.severity || 'medium';
+    document.getElementById('vuln-form-status').value = vuln.status || 'discovered';
+    document.getElementById('vuln-form-target').value = vuln.target || '';
+    document.getElementById('vuln-form-port').value = vuln.port || '';
+    document.getElementById('vuln-form-protocol').value = vuln.protocol || '';
+    document.getElementById('vuln-form-scanner_source').value = vuln.scanner_source || '';
+    document.getElementById('vuln-form-description').value = vuln.description || '';
+    document.getElementById('vuln-form-impact').value = vuln.impact || '';
+    document.getElementById('vuln-form-solution').value = vuln.solution || '';
+    document.getElementById('vuln-form-poc_steps').value = vuln.poc_steps || '';
+    document.getElementById('vuln-form-evidence').value = vuln.evidence || '';
+    document.getElementById('vuln-form-cvss_vector').value = vuln.cvss_vector || '';
+
+    // Update CVSS preview
+    if (vuln.cvss_vector) {
+        onCvssVectorInput(vuln.cvss_vector);
+    } else {
+        const cvssScore = parseFloat(vuln.cvss_score) || 0;
+        const preview = document.getElementById('cvss-score-preview');
+        if (cvssScore > 0) {
+            preview.textContent = cvssScore.toFixed(1);
+            preview.className = 'cvss-badge ' + getCvssBadgeClass(cvssScore);
+        } else {
+            preview.textContent = '-';
+            preview.className = 'cvss-badge cvss-none';
+        }
+        document.getElementById('cvss-vector-hint').textContent = '';
+    }
+
+    openModal('vuln-modal');
+}
+
+function saveVuln(event) {
+    event.preventDefault();
+    const editId = document.getElementById('vuln-edit-id').value;
+    const cvssVector = document.getElementById('vuln-form-cvss_vector').value.trim();
+
+    // Calculate CVSS score from vector if provided
+    let cvssScore = null;
+    if (cvssVector) {
+        cvssScore = clientSideCvssCalc(cvssVector);
+    }
+
+    const vulnData = {
+        vuln_id: document.getElementById('vuln-form-vuln_id').value,
+        name: document.getElementById('vuln-form-name').value,
+        severity: document.getElementById('vuln-form-severity').value,
+        status: document.getElementById('vuln-form-status').value,
+        target: document.getElementById('vuln-form-target').value,
+        port: document.getElementById('vuln-form-port').value,
+        protocol: document.getElementById('vuln-form-protocol').value,
+        scanner_source: document.getElementById('vuln-form-scanner_source').value,
+        description: document.getElementById('vuln-form-description').value,
+        impact: document.getElementById('vuln-form-impact').value,
+        solution: document.getElementById('vuln-form-solution').value,
+        poc_steps: document.getElementById('vuln-form-poc_steps').value,
+        evidence: document.getElementById('vuln-form-evidence').value,
+        cvss_vector: cvssVector,
+        cvss_score: cvssScore,
+    };
+
+    if (!vulnData.name.trim()) {
+        showToast(currentLang === 'zh' ? '漏洞名称不能为空' : 'Vulnerability name is required', 'error');
+        return;
+    }
+
+    let url, method;
+    if (editId) {
+        url = '/api/vulnerabilities/' + editId;
+        method = 'PUT';
+    } else {
+        url = '/api/vulnerabilities';
+        method = 'POST';
+    }
+
+    fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vulnData),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            closeModal();
+            loadVulns();
+        } else {
+            showToast(data.message, 'error');
+        }
+    })
+    .catch(err => showToast(currentLang === 'zh' ? '操作失败' : 'Operation failed', 'error'));
+}
+
+function deleteVuln(id) {
+    if (!confirm(currentLang === 'zh' ? '确定要删除此漏洞吗？' : 'Are you sure to delete this vulnerability?')) return;
+
+    fetch('/api/vulnerabilities/' + id, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                selectedIds.delete(id);
+                loadVulns();
+                localStorage.setItem('sec_report_data_updated', String(Date.now()));
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(err => showToast(currentLang === 'zh' ? '删除失败' : 'Delete failed', 'error'));
+}
+
+function batchDelete() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(currentLang === 'zh' ? `确定要删除选中的 ${selectedIds.size} 个漏洞吗？` : `Delete ${selectedIds.size} selected vulnerabilities?`)) return;
+
+    let promises = [];
+    selectedIds.forEach(id => {
+        promises.push(fetch('/api/vulnerabilities/' + id, { method: 'DELETE' }).then(r => r.json()));
+    });
+
+    Promise.all(promises)
+        .then(results => {
+            let successCount = results.filter(r => r.success).length;
+            showToast(currentLang === 'zh' ? `成功删除 ${successCount} 个漏洞` : `Deleted ${successCount} vulnerabilities`, 'success');
+            selectedIds.clear();
+            loadVulns();
+            if (successCount > 0) localStorage.setItem('sec_report_data_updated', String(Date.now()));
+        })
+        .catch(err => showToast(currentLang === 'zh' ? '批量删除失败' : 'Batch delete failed', 'error'));
+}
+
+function clearAllVulns() {
+    if (allVulns.length === 0) return;
+    if (!confirm(currentLang === 'zh' ? `确定要清空所有 ${allVulns.length} 个漏洞吗？此操作不可撤销。` : `Clear all ${allVulns.length} vulnerabilities? This cannot be undone.`)) return;
+
+    fetch('/api/vulnerabilities', { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                selectedIds.clear();
+                loadVulns();
+                localStorage.setItem('sec_report_data_updated', String(Date.now()));
+            }
+        })
+        .catch(err => showToast(currentLang === 'zh' ? '清空失败' : 'Clear failed', 'error'));
+}
+
+// ============================================================
+// Deduplication
+// ============================================================
+
+function deduplicateVulns() {
+    if (allVulns.length === 0) {
+        showToast(currentLang === 'zh' ? '没有可去重的漏洞' : 'No vulnerabilities to deduplicate', 'warning');
+        return;
+    }
+
+    if (!confirm(currentLang === 'zh'
+        ? '确定要进行漏洞去重吗？将自动合并重复的漏洞。'
+        : 'Deduplicate vulnerabilities? Duplicate entries will be merged.')) {
+        return;
+    }
+
+    const btn = document.getElementById('dedup-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>' + (currentLang === 'zh' ? '去重中...' : 'Dedup...');
+
+    fetch('/api/vulnerabilities/deduplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-clone mr-1.5"></i>' + (currentLang === 'zh' ? '去重' : 'Dedup');
+
+        if (data.success) {
+            loadVulns();
+            if (data.duplicate_count > 0) {
+                showToast(
+                    currentLang === 'zh'
+                        ? `去重完成，合并了 ${data.duplicate_count} 个重复漏洞，剩余 ${data.remaining_count} 个`
+                        : `Dedup complete: merged ${data.duplicate_count} duplicates, ${data.remaining_count} remaining`,
+                    'success'
+                );
+            } else {
+                showToast(currentLang === 'zh' ? '未发现重复漏洞' : 'No duplicates found', 'info');
+            }
+        } else {
+            showToast(data.message || (currentLang === 'zh' ? '去重失败' : 'Dedup failed'), 'error');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-clone mr-1.5"></i>' + (currentLang === 'zh' ? '去重' : 'Dedup');
+        showToast(currentLang === 'zh' ? '去重请求失败' : 'Dedup request failed', 'error');
+    });
+}
+
+// ============================================================
+// Translation Functions
+// ============================================================
+
+function translateAllVulns() {
+    if (allVulns.length === 0) {
+        showToast(currentLang === 'zh' ? '没有可翻译的漏洞' : 'No vulnerabilities to translate', 'warning');
+        return;
+    }
+
+    if (!confirm(currentLang === 'zh'
+        ? `确定要将所有 ${allVulns.length} 个漏洞翻译为中文吗？翻译将覆盖原有内容。`
+        : `Translate all ${allVulns.length} vulnerabilities to Chinese? This will overwrite existing content.`)) {
+        return;
+    }
+
+    const btn = document.getElementById('translate-all-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>' + (currentLang === 'zh' ? '翻译中...' : 'Translating...');
+
+    fetch('/api/vulnerabilities/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-language mr-1.5"></i>' + (currentLang === 'zh' ? '一键翻译' : 'Translate All');
+
+        if (data.success) {
+            loadVulns();
+            showToast(currentLang === 'zh'
+                ? `翻译完成，共翻译 ${data.translated_count} 个漏洞`
+                : `Translation complete, ${data.translated_count} vulnerabilities translated`,
+                'success'
+            );
+        } else {
+            showToast(data.message || (currentLang === 'zh' ? '翻译失败' : 'Translation failed'), 'error');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-language mr-1.5"></i>' + (currentLang === 'zh' ? '一键翻译' : 'Translate All');
+        console.error('翻译请求失败:', err);
+        showToast(currentLang === 'zh' ? '翻译请求失败: ' + (err.message || '网络错误') : 'Translation request failed: ' + (err.message || 'Network error'), 'error');
+    });
+}
+
+function translateSingleVuln(id) {
+    const vuln = allVulns.find(v => v.id === id);
+    if (!vuln) return;
+
+    fetch('/api/vulnerabilities/' + id + '/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const idx = allVulns.findIndex(v => v.id === id);
+            if (idx !== -1) {
+                allVulns[idx] = data.vulnerability;
+            }
+            applyFiltersAndRender();
+            showToast(currentLang === 'zh' ? '翻译成功' : 'Translated successfully', 'success');
+        } else {
+            showToast(data.message || (currentLang === 'zh' ? '翻译失败' : 'Translation failed'), 'error');
+        }
+    })
+    .catch(err => {
+        showToast(currentLang === 'zh' ? '翻译请求失败' : 'Translation request failed', 'error');
+    });
+}
+
+// ============================================================
+// Translation Dictionary Manager
+// ============================================================
+
+let translationCurrentPage = 1;
+let translationTotalPages = 0;
+let translationSearchKeyword = '';
+
+function openTranslationManager() {
+    translationCurrentPage = 1;
+    translationSearchKeyword = '';
+    document.getElementById('translation-search').value = '';
+
+    const titleEl = document.getElementById('translation-mgr-title');
+    if (currentLang === 'zh') {
+        titleEl.innerHTML = '<i class="fas fa-book mr-2 text-accent-blue"></i>翻译字典管理';
+    } else {
+        titleEl.innerHTML = '<i class="fas fa-book mr-2 text-accent-blue"></i>Translation Manager';
+    }
+
+    openModal('translation-mgr-modal');
+    loadTranslationStats();
+    loadTranslationEntries();
+}
+
+function loadTranslationStats() {
+    fetch('/api/translations/stats')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('stat-custom-total').textContent = data.custom_dictionary.total_entries || 0;
+                document.getElementById('stat-builtin-vuln').textContent = data.builtin_stats.vuln_types || 0;
+                document.getElementById('stat-builtin-terms').textContent = data.builtin_stats.security_terms || 0;
+                document.getElementById('stat-builtin-phrases').textContent = data.builtin_stats.phrase_patterns || 0;
+            }
+        })
+        .catch(err => console.error('Failed to load translation stats:', err));
+}
+
+function loadTranslationEntries() {
+    const tbody = document.getElementById('translation-table-body');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin text-xl mb-2 block"></i>Loading...</td></tr>';
+
+    let url = '/api/translations?page=' + translationCurrentPage + '&page_size=50';
+    if (translationSearchKeyword) {
+        url += '&search=' + encodeURIComponent(translationSearchKeyword);
+    }
+
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                translationTotalPages = data.total_pages || 0;
+                document.getElementById('translation-page-info').textContent =
+                    'Total: ' + data.total + ' entries';
+                document.getElementById('translation-page-num').textContent =
+                    translationCurrentPage + ' / ' + translationTotalPages;
+
+                const entries = data.entries;
+                const keys = Object.keys(entries);
+
+                if (keys.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500"><i class="fas fa-inbox text-2xl mb-2 block"></i>' +
+                        (currentLang === 'zh' ? '暂无自定义翻译条目' : 'No custom translation entries') + '</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = keys.map(key => {
+                    const t = entries[key];
+                    const nameZh = escapeHtml(t.name_zh || '-');
+                    const descZh = escapeHtml((t.description_zh || '').substring(0, 80) + ((t.description_zh || '').length > 80 ? '...' : ''));
+                    const encodedKey = encodeURIComponent(key);
+                    return '<tr class="hover:bg-dark-600/30 transition-colors border-b border-dark-600/50">' +
+                        '<td class="px-4 py-2.5 text-accent-blue font-mono text-sm">' + escapeHtml(key) + '</td>' +
+                        '<td class="px-4 py-2.5 text-white font-medium">' + nameZh + '</td>' +
+                        '<td class="px-4 py-2.5 text-gray-400 text-xs hidden sm:table-cell">' + descZh + '</td>' +
+                        '<td class="px-4 py-2.5 text-center">' +
+                            '<button onclick="deleteTranslationEntry(\'' + encodedKey.replace(/'/g, "\\'") + '\')" class="action-btn-delete" title="Delete">' +
+                                '<i class="fas fa-trash"></i>' +
+                            '</button>' +
+                        '</td>' +
+                    '</tr>';
+                }).join('');
+            }
+        })
+        .catch(err => {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-accent-red">' +
+                (currentLang === 'zh' ? '加载失败' : 'Failed to load') + '</td></tr>';
+            console.error('Failed to load translations:', err);
+        });
+}
+
+function searchTranslations() {
+    translationSearchKeyword = document.getElementById('translation-search').value.trim();
+    translationCurrentPage = 1;
+    loadTranslationEntries();
+}
+
+function loadTranslationPage(direction) {
+    if (direction === 'prev' && translationCurrentPage > 1) {
+        translationCurrentPage--;
+        loadTranslationEntries();
+    } else if (direction === 'next' && translationCurrentPage < translationTotalPages) {
+        translationCurrentPage++;
+        loadTranslationEntries();
+    }
+}
+
+function importTranslationFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const importBtn = input.closest('label');
+    const originalHtml = importBtn.innerHTML;
+    importBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>' + (currentLang === 'zh' ? '导入中...' : 'Importing...');
+    importBtn.style.pointerEvents = 'none';
+
+    fetch('/api/translations/import', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        importBtn.innerHTML = originalHtml;
+        importBtn.style.pointerEvents = '';
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            loadTranslationStats();
+            loadTranslationEntries();
+        } else {
+            showToast(data.message || (currentLang === 'zh' ? '导入失败' : 'Import failed'), 'error');
+        }
+    })
+    .catch(err => {
+        importBtn.innerHTML = originalHtml;
+        importBtn.style.pointerEvents = '';
+        showToast(currentLang === 'zh' ? '导入请求失败' : 'Import request failed', 'error');
+    });
+
+    input.value = '';
+}
+
+function exportTranslations(format) {
+    fetch('/api/translations/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format: format }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const link = document.createElement('a');
+            link.href = data.download_url;
+            link.download = data.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message || (currentLang === 'zh' ? '导出失败' : 'Export failed'), 'error');
+        }
+    })
+    .catch(err => {
+        showToast(currentLang === 'zh' ? '导出请求失败' : 'Export request failed', 'error');
+    });
+}
+
+function deleteTranslationEntry(encodedKey) {
+    const key = decodeURIComponent(encodedKey);
+    const confirmMsg = currentLang === 'zh'
+        ? '确定要删除翻译条目 "' + key + '" 吗？'
+        : 'Delete translation entry "' + key + '"?';
+
+    if (!confirm(confirmMsg)) return;
+
+    fetch('/api/translations/' + encodedKey, {
+        method: 'DELETE',
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            loadTranslationStats();
+            loadTranslationEntries();
+        } else {
+            showToast(data.message || (currentLang === 'zh' ? '删除失败' : 'Delete failed'), 'error');
+        }
+    })
+    .catch(err => {
+        showToast(currentLang === 'zh' ? '删除请求失败' : 'Delete request failed', 'error');
+    });
+}
+</script>
+
+<style>
+/* Status badge styles */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.status-discovered {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-confirmed {
+    background-color: rgba(249, 115, 22, 0.15);
+    color: #fdba74;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.status-fixing {
+    background-color: rgba(234, 179, 8, 0.15);
+    color: #fde047;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.status-fixed {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-verified {
+    background-color: rgba(167, 139, 250, 0.15);
+    color: #c4b5fd;
+    border: 1px solid rgba(167, 139, 250, 0.3);
+}
+
+.status-closed {
+    background-color: rgba(107, 114, 128, 0.15);
+    color: #d1d5db;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,709 @@
+{% extends "base.html" %}
+
+{% block title %}{{ i18n('app_title') }} - {{ i18n('nav_import') }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center">
+            <i class="fas fa-file-import text-accent-blue"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold text-white" data-i18n="import_title">{{ i18n('import_title') }}</h1>
+            <p class="text-gray-500 text-sm" data-i18n="import_drag_hint">{{ i18n('import_drag_hint') }}</p>
+        </div>
+    </div>
+
+    <!-- 上传区域 -->
+    <div class="card">
+        <div class="card-body">
+            <!-- 拖拽上传区域 -->
+            <div id="drop-zone" class="drop-zone" onclick="document.getElementById('file-input').click()">
+                <input type="file" id="file-input" class="hidden" accept=".xml,.json,.csv,.html,.htm,.xlsx,.xls,.nessus" multiple onchange="handleFileSelect(event)">
+                <div class="text-center">
+                    <div class="upload-icon-wrapper">
+                        <i class="fas fa-cloud-arrow-up text-4xl text-accent-blue"></i>
+                    </div>
+                    <p class="text-white font-medium mt-4" data-i18n="import_drag_hint">{{ i18n('import_drag_hint') }}</p>
+                    <p class="text-gray-500 text-sm mt-1">XML / JSON / CSV / HTML / Excel</p>
+                    <p class="text-gray-600 text-xs mt-2" id="batch-hint">{{ i18n('import_batch_hint') if i18n('import_batch_hint') != 'import_batch_hint' else ('支持多文件批量上传，可同时选择多个扫描报告文件' if lang == 'zh' else 'Supports batch upload, select multiple scan report files at once') }}</p>
+                </div>
+            </div>
+
+            <!-- 手动选择扫描器类型 -->
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-4">
+                <label class="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">
+                    <i class="fas fa-crosshairs text-accent-blue"></i>{{ i18n('import_manual_scanner') if i18n('import_manual_scanner') != 'import_manual_scanner' else ('扫描器类型' if lang == 'zh' else 'Scanner Type') }}
+                </label>
+                <select id="manual-scanner-select" class="filter-select flex-1">
+                    <option value="auto">{{ i18n('import_auto_detect') if i18n('import_auto_detect') != 'import_auto_detect' else ('自动检测（推荐）' if lang == 'zh' else 'Auto Detect (Recommended)') }}</option>
+                </select>
+                <span class="text-xs text-gray-600 whitespace-nowrap">{{ i18n('import_manual_hint') if i18n('import_manual_hint') != 'import_manual_hint' else ('默认自动识别，识别错误时可手动指定' if lang == 'zh' else 'Auto by default, manually specify if detection fails') }}</span>
+            </div>
+
+            <!-- 上传进度 -->
+            <div id="upload-progress" class="hidden mt-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm text-gray-400" id="upload-status">{{ i18n('import_uploading') }}</span>
+                    <span class="text-sm text-accent-blue" id="upload-percent">0%</span>
+                </div>
+                <div class="w-full bg-dark-600 rounded-full h-2">
+                    <div id="upload-bar" class="bg-accent-blue h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量上传进度面板 -->
+    <div id="batch-panel" class="hidden card">
+        <div class="card-header">
+            <i class="fas fa-layer-group text-accent-blue mr-2"></i>
+            <span id="batch-panel-title">{{ i18n('import_batch_progress') if i18n('import_batch_progress') != 'import_batch_progress' else ('批量上传进度' if lang == 'zh' else 'Batch Upload Progress') }}</span>
+            <span class="ml-auto text-sm text-gray-500" id="batch-summary"></span>
+        </div>
+        <div class="card-body">
+            <!-- 批量文件列表 -->
+            <div class="overflow-x-auto max-h-80 overflow-y-auto rounded-lg border border-dark-600">
+                <table class="vuln-table">
+                    <thead class="sticky top-0">
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="batch-select-all" onchange="toggleBatchSelectAll(this)" checked>
+                            </th>
+                            <th>#</th>
+                            <th data-i18n="import_filename">{{ i18n('import_filename') if i18n('import_filename') != 'import_filename' else ('文件名' if lang == 'zh' else 'Filename') }}</th>
+                            <th data-i18n="import_scanner_type">{{ i18n('import_scanner_type') if i18n('import_scanner_type') != 'import_scanner_type' else ('扫描器类型' if lang == 'zh' else 'Scanner Type') }}</th>
+                            <th data-i18n="import_vuln_count">{{ i18n('import_vuln_count') if i18n('import_vuln_count') != 'import_vuln_count' else ('漏洞数量' if lang == 'zh' else 'Vuln Count') }}</th>
+                            <th data-i18n="import_status">{{ i18n('import_status') if i18n('import_status') != 'import_status' else ('状态' if lang == 'zh' else 'Status') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batch-table-body">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 批量操作按钮 -->
+            <div class="flex items-center justify-between mt-4">
+                <button onclick="cancelBatchImport()" class="btn-secondary">
+                    <i class="fas fa-times mr-1.5"></i>{{ i18n('cancel') }}
+                </button>
+                <div class="flex items-center space-x-3">
+                    <button onclick="batchSelectIndividual()" class="btn-secondary" id="batch-select-btn">
+                        <i class="fas fa-hand-pointer mr-1.5"></i>{{ i18n('import_batch_select_individual') if i18n('import_batch_select_individual') != 'import_batch_select_individual' else ('逐个选择' if lang == 'zh' else 'Select Individual') }}
+                    </button>
+                    <button onclick="batchImportAll()" class="btn-primary" id="batch-import-all-btn">
+                        <i class="fas fa-check-double mr-1.5"></i>{{ i18n('import_batch_import_all') if i18n('import_batch_import_all') != 'import_batch_import_all' else ('全选导入' if lang == 'zh' else 'Import All') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 解析结果预览（单文件模式） -->
+    <div id="parse-result" class="hidden card">
+        <div class="card-header">
+            <i class="fas fa-check-circle text-accent-green mr-2"></i>
+            <span data-i18n="import_result">{{ i18n('import_result') }}</span>
+            <span class="ml-auto text-sm text-gray-500" id="result-scanner"></span>
+        </div>
+        <div class="card-body">
+            <!-- 统计摘要 -->
+            <div class="grid grid-cols-5 gap-3 mb-4" id="result-stats">
+            </div>
+
+            <!-- 漏洞预览表格 -->
+            <div class="overflow-x-auto max-h-96 overflow-y-auto rounded-lg border border-dark-600">
+                <table class="vuln-table">
+                    <thead class="sticky top-0">
+                        <tr>
+                            <th>#</th>
+                            <th data-i18n="vuln_name">{{ i18n('vuln_name') }}</th>
+                            <th data-i18n="vuln_severity">{{ i18n('vuln_severity') }}</th>
+                            <th data-i18n="vuln_target">{{ i18n('vuln_target') }}</th>
+                            <th data-i18n="vuln_port">{{ i18n('vuln_port') }}</th>
+                            <th data-i18n="vuln_source">{{ i18n('vuln_source') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="result-table-body">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex items-center justify-between mt-4">
+                <button onclick="cancelImport()" class="btn-secondary">
+                    <i class="fas fa-times mr-1.5"></i>{{ i18n('cancel') }}
+                </button>
+                <button onclick="confirmImport()" class="btn-primary" id="confirm-btn">
+                    <i class="fas fa-check mr-1.5"></i>{{ i18n('import_confirm') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 各扫描器支持导入的格式 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-shield-halved text-accent-blue mr-2"></i>
+            <span>{{ i18n('import_supported_formats') if i18n('import_supported_formats') != 'import_supported_formats' else ('各扫描器支持导入的格式' if lang == 'zh' else 'Supported Import Formats') }}</span>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3" id="scanner-format-list">
+                <!-- 动态填充 -->
+            </div>
+            <p class="text-xs mt-4" style="color: #64748b;">{{ i18n('import_auto_detect_hint') if i18n('import_auto_detect_hint') != 'import_auto_detect_hint' else ('💡 默认自动识别扫描器类型，也可手动选择。' if lang == 'zh' else '💡 Scanner type is auto-detected by default, but you can also select manually.') }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- 扫描器类型选择弹窗 -->
+<div id="scanner-modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9998;" onclick="closeScannerModal()"></div>
+<div id="scanner-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background-color:#1e293b;border:1px solid #334155;border-radius:0.75rem;width:520px;max-width:90vw;max-height:80vh;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+    <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;">
+        <h3 id="scanner-modal-title" style="margin:0;font-size:1.1rem;font-weight:600;color:#f1f5f9;">选择扫描器类型</h3>
+        <button onclick="closeScannerModal()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.2rem;padding:0.25rem;" aria-label="Close">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div style="padding:1rem 1.5rem;max-height:50vh;overflow-y:auto;" id="scanner-modal-options">
+        <!-- 动态填充 -->
+    </div>
+    <div style="padding:1rem 1.5rem;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:0.75rem;">
+        <button onclick="closeScannerModal()" style="padding:0.5rem 1.25rem;border-radius:0.5rem;border:1px solid #475569;background:transparent;color:#e2e8f0;cursor:pointer;font-size:0.875rem;">取消</button>
+        <button onclick="confirmScannerSelection()" id="scanner-modal-confirm" style="padding:0.5rem 1.25rem;border-radius:0.5rem;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-size:0.875rem;font-weight:500;">确认上传</button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentFileId = null;
+
+// ============================================================
+// 渲染支持的扫描器格式列表
+// ============================================================
+const scannerFormats = [
+    { name: 'Nmap', key: 'nmap', icon: 'fa-globe', formats: 'XML (.xml)', color: '#3b82f6' },
+    { name: 'Nessus', key: 'nessus', icon: 'fa-shield-halved', formats: '.nessus / XML (.xml)', color: '#ef4444' },
+    { name: 'BurpSuite', key: 'burpsuite', icon: 'fa-spider', formats: 'XML (.xml)', color: '#f97316' },
+    { name: 'AWVS', key: 'awvs', icon: 'fa-bug', formats: 'XML (.xml)', color: '#eab308' },
+    { name: 'OWASP ZAP', key: 'zap', icon: 'fa-crosshairs', formats: 'XML (.xml) / HTML (.html)', color: '#22c55e' },
+    { name: 'Xray', key: 'xray', icon: 'fa-bolt', formats: 'JSON (.json)', color: '#8b5cf6' },
+    { name: 'Nuclei', key: 'nuclei', icon: 'fa-atom', formats: 'JSON (.json)', color: '#06b6d4' },
+    { name: 'SQLMap', key: 'sqlmap', icon: 'fa-database', formats: 'JSON (.json)', color: '#ec4899' },
+    { name: '绿盟 RSAS', key: 'nsfocus', icon: 'fa-shield', formats: 'XML (.xml) / Excel (.xlsx)', color: '#14b8a6' },
+    { name: '安恒明鉴', key: 'anheng', icon: 'fa-lock', formats: 'XML (.xml) / Excel (.xlsx)', color: '#a855f7' },
+    { name: '启明星辰天镜', key: 'venustech', icon: 'fa-star', formats: 'XML (.xml) / Excel (.xlsx)', color: '#f43f5e' },
+];
+
+function renderScannerFormats() {
+    const container = document.getElementById('scanner-format-list');
+    if (!container) return;
+    container.innerHTML = scannerFormats.map(s => `
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background-color:rgba(30,41,59,0.5);border:1px solid #334155;border-radius:0.625rem;">
+            <div style="display:flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:0.5rem;background-color:${s.color}20;border:1px solid ${s.color}40;flex-shrink:0;">
+                <i class="fas ${s.icon}" style="color:${s.color};font-size:0.85rem;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:0.875rem;font-weight:600;color:#f1f5f9;">${s.name}</div>
+                <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.125rem;">${s.formats}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 页面加载时渲染
+renderScannerFormats();
+
+// 填充手动选择扫描器下拉框
+(function() {
+    const select = document.getElementById('manual-scanner-select');
+    if (!select) return;
+    scannerFormats.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.key;
+        opt.textContent = s.name;
+        select.appendChild(opt);
+    });
+})();
+
+// 批量上传状态
+let batchFiles = [];       // { file, fileId, scannerType, vulnCount, status, selected }
+let batchMode = false;
+
+// ============================================================
+// 拖拽上传（支持多文件）
+// ============================================================
+const dropZone = document.getElementById('drop-zone');
+
+dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.add('drop-zone-active');
+});
+
+dropZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('drop-zone-active');
+});
+
+dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('drop-zone-active');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        if (files.length === 1) {
+            // 单文件模式
+            uploadFile(files[0]);
+        } else {
+            // 多文件批量模式
+            startBatchUpload(files);
+        }
+    }
+});
+
+function handleFileSelect(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    if (files.length === 1) {
+        // 单文件模式
+        uploadFile(files[0]);
+    } else {
+        // 多文件批量模式
+        startBatchUpload(files);
+    }
+}
+
+// ============================================================
+// 单文件上传（保留原有功能）
+// ============================================================
+function uploadFile(file) {
+    batchMode = false;
+    // 隐藏批量面板
+    document.getElementById('batch-panel').classList.add('hidden');
+
+    // 显示上传进度
+    const progress = document.getElementById('upload-progress');
+    const statusEl = document.getElementById('upload-status');
+    const percentEl = document.getElementById('upload-percent');
+    const barEl = document.getElementById('upload-bar');
+    progress.classList.remove('hidden');
+
+    statusEl.textContent = currentLang === 'zh' ? '正在上传...' : 'Uploading...';
+    percentEl.textContent = '0%';
+    barEl.style.width = '0%';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 传递手动选择的扫描器类型
+    const manualScanner = document.getElementById('manual-scanner-select').value;
+    if (manualScanner && manualScanner !== 'auto') {
+        formData.append('scanner_type', manualScanner);
+    }
+
+    // 模拟进度
+    let fakeProgress = 0;
+    const progressTimer = setInterval(() => {
+        fakeProgress += Math.random() * 15;
+        if (fakeProgress > 90) fakeProgress = 90;
+        percentEl.textContent = Math.round(fakeProgress) + '%';
+        barEl.style.width = fakeProgress + '%';
+    }, 200);
+
+    fetch('/api/import/upload', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        clearInterval(progressTimer);
+        percentEl.textContent = '100%';
+        barEl.style.width = '100%';
+
+        setTimeout(() => {
+            progress.classList.add('hidden');
+        }, 500);
+
+        if (data.success) {
+            currentFileId = data.file_id;
+            showParseResult(data);
+            showToast(currentLang === 'zh' ? '文件解析成功' : 'File parsed successfully', 'success');
+        } else {
+            showToast(data.message || (currentLang === 'zh' ? '解析失败' : 'Parse failed'), 'error');
+        }
+    })
+    .catch(err => {
+        clearInterval(progressTimer);
+        progress.classList.add('hidden');
+        showToast(currentLang === 'zh' ? '上传失败: ' + err.message : 'Upload failed: ' + err.message, 'error');
+    });
+}
+
+function showParseResult(data) {
+    const resultDiv = document.getElementById('parse-result');
+    resultDiv.classList.remove('hidden');
+
+    document.getElementById('result-scanner').textContent = data.scanner_type.toUpperCase();
+
+    // 统计摘要
+    const statsDiv = document.getElementById('result-stats');
+    const counts = data.severity_counts;
+    statsDiv.innerHTML = ['critical', 'high', 'medium', 'low', 'info'].map(level => `
+        <div class="text-center p-3 rounded-lg bg-dark-800/50 border border-dark-600">
+            <div class="text-2xl font-bold severity-text-${level}">${counts[level]}</div>
+            <div class="text-xs text-gray-500 mt-1 severity-text-${level}">${getSeverityLabel(level)}</div>
+        </div>
+    `).join('');
+
+    // 漏洞表格
+    const tbody = document.getElementById('result-table-body');
+    tbody.innerHTML = data.vulnerabilities.map((v, i) => `
+        <tr>
+            <td class="text-gray-500">${i + 1}</td>
+            <td class="text-white font-medium">${escapeHtml(v.name)}</td>
+            <td><span class="severity-badge severity-${v.severity}">${getSeverityLabel(v.severity)}</span></td>
+            <td class="text-gray-300">${escapeHtml(v.target)}</td>
+            <td class="text-gray-400">${escapeHtml(v.port)}</td>
+            <td class="text-gray-500">${escapeHtml(v.scanner_source)}</td>
+        </tr>
+    `).join('');
+}
+
+function confirmImport() {
+    if (!currentFileId) return;
+
+    const btn = document.getElementById('confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>' + (currentLang === 'zh' ? '导入中...' : 'Importing...');
+
+    fetch('/api/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: currentFileId }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            document.getElementById('parse-result').classList.add('hidden');
+            currentFileId = null;
+            document.getElementById('file-input').value = '';
+            // 通知其他页面刷新数据
+            localStorage.setItem('sec_report_data_updated', String(Date.now()));
+        } else {
+            showToast(data.message, 'error');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check mr-1.5"></i>' + (currentLang === 'zh' ? '确认导入' : 'Confirm Import');
+    })
+    .catch(err => {
+        showToast(currentLang === 'zh' ? '导入失败' : 'Import failed', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check mr-1.5"></i>' + (currentLang === 'zh' ? '确认导入' : 'Confirm Import');
+    });
+}
+
+function cancelImport() {
+    document.getElementById('parse-result').classList.add('hidden');
+    currentFileId = null;
+    document.getElementById('file-input').value = '';
+}
+
+// ============================================================
+// 批量上传功能
+// ============================================================
+function startBatchUpload(fileList) {
+    batchMode = true;
+    batchFiles = [];
+
+    // 隐藏单文件结果
+    document.getElementById('parse-result').classList.add('hidden');
+
+    // 初始化批量文件列表
+    for (let i = 0; i < fileList.length; i++) {
+        batchFiles.push({
+            file: fileList[i],
+            fileId: null,
+            scannerType: '--',
+            vulnCount: '--',
+            status: 'pending',   // pending / uploading / parsing / done / error
+            selected: true,
+            errorMessage: '',
+        });
+    }
+
+    // 显示批量面板
+    const panel = document.getElementById('batch-panel');
+    panel.classList.remove('hidden');
+    document.getElementById('batch-select-all').checked = true;
+
+    renderBatchTable();
+    updateBatchSummary();
+
+    // 依次上传每个文件
+    uploadBatchFilesSequentially(0);
+}
+
+function uploadBatchFilesSequentially(index) {
+    if (index >= batchFiles.length) {
+        // 全部上传完成
+        updateBatchSummary();
+        return;
+    }
+
+    const item = batchFiles[index];
+    if (!item.selected) {
+        // 跳过未选中的文件
+        uploadBatchFilesSequentially(index + 1);
+        return;
+    }
+
+    item.status = 'uploading';
+    renderBatchTable();
+
+    const formData = new FormData();
+    formData.append('file', item.file);
+
+    // 传递手动选择的扫描器类型
+    const manualScanner = document.getElementById('manual-scanner-select').value;
+    if (manualScanner && manualScanner !== 'auto') {
+        formData.append('scanner_type', manualScanner);
+    }
+
+    fetch('/api/import/upload', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            item.status = 'parsing';
+            item.fileId = data.file_id;
+            item.scannerType = (data.scanner_type || '--').toUpperCase();
+            item.vulnCount = data.vulnerabilities ? data.vulnerabilities.length : 0;
+            item.status = 'done';
+        } else {
+            item.status = 'error';
+            item.errorMessage = data.message || (currentLang === 'zh' ? '解析失败' : 'Parse failed');
+        }
+        renderBatchTable();
+        updateBatchSummary();
+        // 继续上传下一个
+        uploadBatchFilesSequentially(index + 1);
+    })
+    .catch(err => {
+        item.status = 'error';
+        item.errorMessage = err.message || (currentLang === 'zh' ? '上传失败' : 'Upload failed');
+        renderBatchTable();
+        updateBatchSummary();
+        uploadBatchFilesSequentially(index + 1);
+    });
+}
+
+function renderBatchTable() {
+    const tbody = document.getElementById('batch-table-body');
+    tbody.innerHTML = batchFiles.map((item, i) => {
+        // 状态标签
+        let statusHtml = '';
+        switch (item.status) {
+            case 'pending':
+                statusHtml = `<span class="text-gray-500 text-xs"><i class="fas fa-clock mr-1"></i>${currentLang === 'zh' ? '等待中' : 'Pending'}</span>`;
+                break;
+            case 'uploading':
+                statusHtml = `<span class="text-accent-blue text-xs"><i class="fas fa-spinner fa-spin mr-1"></i>${currentLang === 'zh' ? '上传中' : 'Uploading'}</span>`;
+                break;
+            case 'parsing':
+                statusHtml = `<span class="text-accent-orange text-xs"><i class="fas fa-spinner fa-spin mr-1"></i>${currentLang === 'zh' ? '解析中' : 'Parsing'}</span>`;
+                break;
+            case 'done':
+                statusHtml = `<span class="text-accent-green text-xs"><i class="fas fa-check-circle mr-1"></i>${currentLang === 'zh' ? '完成' : 'Done'}</span>`;
+                break;
+            case 'error':
+                statusHtml = `<span class="text-accent-red text-xs" title="${escapeHtml(item.errorMessage)}"><i class="fas fa-times-circle mr-1"></i>${currentLang === 'zh' ? '失败' : 'Error'}</span>`;
+                break;
+        }
+
+        // 行样式
+        let rowClass = '';
+        if (item.status === 'error') rowClass = 'bg-red-500/5';
+        else if (item.status === 'done') rowClass = 'bg-green-500/5';
+
+        return `
+            <tr class="${rowClass}">
+                <td>
+                    <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleBatchFileSelect(${i}, this)" ${item.status === 'uploading' || item.status === 'parsing' ? 'disabled' : ''}>
+                </td>
+                <td class="text-gray-500">${i + 1}</td>
+                <td class="text-white font-medium text-sm" title="${escapeHtml(item.file.name)}">${escapeHtml(truncateFilename(item.file.name, 40))}</td>
+                <td class="text-gray-300 text-sm">${escapeHtml(item.scannerType)}</td>
+                <td class="text-gray-300 text-sm">${item.vulnCount}</td>
+                <td>${statusHtml}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function updateBatchSummary() {
+    const total = batchFiles.length;
+    const done = batchFiles.filter(f => f.status === 'done').length;
+    const errors = batchFiles.filter(f => f.status === 'error').length;
+    const selected = batchFiles.filter(f => f.selected && f.status === 'done').length;
+    const totalVulns = batchFiles.filter(f => f.status === 'done').reduce((sum, f) => sum + (typeof f.vulnCount === 'number' ? f.vulnCount : 0), 0);
+
+    const summaryEl = document.getElementById('batch-summary');
+    if (currentLang === 'zh') {
+        summaryEl.textContent = `${done}/${total} 完成 | ${errors} 失败 | ${totalVulns} 个漏洞 | 已选 ${selected} 个`;
+    } else {
+        summaryEl.textContent = `${done}/${total} done | ${errors} errors | ${totalVulns} vulns | ${selected} selected`;
+    }
+}
+
+function toggleBatchSelectAll(checkbox) {
+    const checked = checkbox.checked;
+    batchFiles.forEach(item => {
+        if (item.status !== 'uploading' && item.status !== 'parsing') {
+            item.selected = checked;
+        }
+    });
+    renderBatchTable();
+    updateBatchSummary();
+}
+
+function toggleBatchFileSelect(index, checkbox) {
+    batchFiles[index].selected = checkbox.checked;
+    updateBatchSummary();
+}
+
+function truncateFilename(name, maxLen) {
+    if (name.length <= maxLen) return name;
+    const ext = name.substring(name.lastIndexOf('.'));
+    const base = name.substring(0, name.lastIndexOf('.'));
+    const truncated = base.substring(0, maxLen - ext.length - 3);
+    return truncated + '...' + ext;
+}
+
+// 全选导入
+function batchImportAll() {
+    const selectedItems = batchFiles.filter(f => f.selected && f.status === 'done' && f.fileId);
+    if (selectedItems.length === 0) {
+        showToast(currentLang === 'zh' ? '没有可导入的文件，请等待上传完成' : 'No files to import, please wait for upload to complete', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('batch-import-all-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>' + (currentLang === 'zh' ? '导入中...' : 'Importing...');
+
+    let successCount = 0;
+    let failCount = 0;
+    let completed = 0;
+
+    selectedItems.forEach(item => {
+        fetch('/api/import/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file_id: item.fileId }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            completed++;
+            if (data.success) {
+                successCount++;
+                item.status = 'imported';
+            } else {
+                failCount++;
+            }
+            checkBatchImportDone();
+        })
+        .catch(err => {
+            completed++;
+            failCount++;
+            checkBatchImportDone();
+        });
+    });
+
+    function checkBatchImportDone() {
+        if (completed < selectedItems.length) return;
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-double mr-1.5"></i>' + (currentLang === 'zh' ? '全选导入' : 'Import All');
+
+        if (failCount === 0) {
+            showToast(
+                currentLang === 'zh'
+                    ? `成功导入 ${successCount} 个文件`
+                    : `Successfully imported ${successCount} files`,
+                'success'
+            );
+        } else {
+            showToast(
+                currentLang === 'zh'
+                    ? `导入完成：${successCount} 成功，${failCount} 失败`
+                    : `Import done: ${successCount} succeeded, ${failCount} failed`,
+                'warning'
+            );
+        }
+
+        // 更新已导入文件的状态
+        batchFiles.forEach(item => {
+            if (item.status === 'imported') {
+                item.selected = false;
+            }
+        });
+        renderBatchTable();
+        updateBatchSummary();
+
+        // 通知其他页面刷新数据
+        if (successCount > 0) {
+            localStorage.setItem('sec_report_data_updated', String(Date.now()));
+        }
+
+        // 如果全部导入成功，延迟关闭面板
+        if (failCount === 0) {
+            setTimeout(() => {
+                document.getElementById('batch-panel').classList.add('hidden');
+                batchFiles = [];
+                document.getElementById('file-input').value = '';
+            }, 1500);
+        }
+    }
+}
+
+// 逐个选择模式
+function batchSelectIndividual() {
+    const doneItems = batchFiles.filter(f => f.status === 'done' && f.fileId);
+    if (doneItems.length === 0) {
+        showToast(currentLang === 'zh' ? '没有可导入的文件' : 'No files available to import', 'warning');
+        return;
+    }
+
+    // 取消全选，让用户手动勾选
+    document.getElementById('batch-select-all').checked = false;
+    batchFiles.forEach(item => {
+        item.selected = false;
+    });
+    renderBatchTable();
+    updateBatchSummary();
+
+    showToast(
+        currentLang === 'zh'
+            ? '请勾选需要导入的文件，然后点击"全选导入"'
+            : 'Please select files to import, then click "Import All"',
+        'info'
+    );
+}
+
+function cancelBatchImport() {
+    document.getElementById('batch-panel').classList.add('hidden');
+    batchFiles = [];
+    batchMode = false;
+    document.getElementById('file-input').value = '';
+}
+</script>
+{% endblock %}

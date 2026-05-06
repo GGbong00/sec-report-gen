@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues>
+  <issue>
+    <name>SQL Injection</name>
+    <type>Vulnerability</type>
+    <host>http://192.168.1.100</host>
+    <path>/login</path>
+    <location>/login?username=admin</location>
+    <severity>High</severity>
+    <confidence>Certain</confidence>
+    <issueBackground>&lt;p&gt;SQL injection vulnerabilities arise when user-controllable data is incorporated into database SQL queries in an unsafe manner.&lt;/p&gt;</issueBackground>
+    <remediationBackground>&lt;p&gt;Use parameterized queries (also known as prepared statements) for all SQL queries.&lt;/p&gt;</remediationBackground>
+    <vulnerabilityClassifications>&lt;p&gt;CWE-89: Improper Neutralization of Special Elements used in an SQL Command&lt;/p&gt;</vulnerabilityClassifications>
+    <references><url>https://portswigger.net/web-security/sql-injection</url></references>
+  </issue>
+  <issue>
+    <name>Cross-site scripting (reflected)</name>
+    <type>Vulnerability</type>
+    <host>http://192.168.1.100</host>
+    <path>/search</path>
+    <location>/search?q=test</location>
+    <severity>Medium</severity>
+    <confidence>Firm</confidence>
+    <issueBackground>&lt;p&gt;Reflected cross-site scripting vulnerabilities arise when data is copied from a request and echoed into the application's immediate response in an unsafe way.&lt;/p&gt;</issueBackground>
+    <remediationBackground>&lt;p&gt;Encode output to prevent XSS attacks.&lt;/p&gt;</remediationBackground>
+  </issue>
+  <issue>
+    <name>Path traversal</name>
+    <type>Vulnerability</type>
+    <host>http://192.168.1.100</host>
+    <path>/api/files</path>
+    <location>/api/files?path=../../../etc/passwd</location>
+    <severity>High</severity>
+    <confidence>Firm</confidence>
+    <issueBackground>&lt;p&gt;Path traversal vulnerabilities arise when user-controllable data is used to access files on the server filesystem.&lt;/p&gt;</issueBackground>
+    <remediationBackground>&lt;p&gt;Validate and sanitize user input before using it in file operations.&lt;/p&gt;</remediationBackground>
+  </issue>
+  <issue>
+    <name>TLS certificate (self-signed)</name>
+    <type>Vulnerability</type>
+    <host>http://192.168.1.100</host>
+    <path>/</path>
+    <severity>Low</severity>
+    <confidence>Certain</confidence>
+    <issueBackground>&lt;p&gt;The server is using a self-signed TLS certificate.&lt;/p&gt;</issueBackground>
+    <remediationBackground>&lt;p&gt;Install a certificate signed by a trusted certificate authority.&lt;/p&gt;</remediationBackground>
+  </issue>
+  <issue>
+    <name>CSRF token missing</name>
+    <type>Vulnerability</type>
+    <host>http://192.168.1.100</host>
+    <path>/admin/delete</path>
+    <severity>Medium</severity>
+    <confidence>Firm</confidence>
+    <issueBackground>&lt;p&gt;The application does not implement CSRF protection on this endpoint.&lt;/p&gt;</issueBackground>
+    <remediationBackground>&lt;p&gt;Implement CSRF tokens on all state-changing requests.&lt;/p&gt;</remediationBackground>
+  </issue>
+</issues>

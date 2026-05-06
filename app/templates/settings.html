@@ -1,0 +1,1249 @@
+{% extends "base.html" %}
+
+{% block title %}{{ i18n('settings_title') }} - {{ i18n('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-white">{{ i18n('settings_title') }}</h1>
+            <p class="text-sm text-gray-400 mt-1">{{ i18n('app_subtitle') }}</p>
+        </div>
+    </div>
+
+    <!-- 通用设置（仅桌面版显示） -->
+    <div class="card" id="general-settings-card" style="display:none;">
+        <div class="card-header">
+            <i class="fas fa-cog mr-2 text-accent-blue"></i>
+            {{ i18n('settings_general') if i18n('settings_general') != 'settings_general' else ('通用设置' if lang == 'zh' else 'General Settings') }}
+        </div>
+        <div class="card-body space-y-4">
+            <!-- 关闭窗口行为 -->
+            <div>
+                <label class="form-label">{{ i18n('close_behavior') if i18n('close_behavior') != 'close_behavior' else ('关闭窗口行为' if lang == 'zh' else 'Window Close Behavior') }}</label>
+                <p class="text-xs text-gray-500 mt-1 mb-2">{{ i18n('close_behavior_desc') if i18n('close_behavior_desc') != 'close_behavior_desc' else ('点击窗口关闭按钮时的行为' if lang == 'zh' else 'Action when clicking the window close button') }}</p>
+                <div class="grid grid-cols-3 gap-2 mt-1">
+                    <button onclick="setCloseBehavior('minimize')" id="cb-minimize"
+                        class="mode-btn px-3 py-2.5 rounded-lg border border-dark-600 text-sm text-center transition-all hover:border-accent-blue">
+                        <i class="fas fa-window-minimize block text-lg mb-1"></i>
+                        {{ i18n('cb_minimize') if i18n('cb_minimize') != 'cb_minimize' else ('最小化到托盘' if lang == 'zh' else 'Minimize to Tray') }}
+                        <p class="text-xs text-gray-500 mt-0.5">{{ i18n('cb_minimize_desc') if i18n('cb_minimize_desc') != 'cb_minimize_desc' else ('关闭窗口，后台继续运行' if lang == 'zh' else 'Close window, keep running') }}</p>
+                    </button>
+                    <button onclick="setCloseBehavior('ask')" id="cb-ask"
+                        class="mode-btn px-3 py-2.5 rounded-lg border border-dark-600 text-sm text-center transition-all hover:border-accent-blue">
+                        <i class="fas fa-question-circle block text-lg mb-1"></i>
+                        {{ i18n('cb_ask') if i18n('cb_ask') != 'cb_ask' else ('每次询问' if lang == 'zh' else 'Always Ask') }}
+                        <p class="text-xs text-gray-500 mt-0.5">{{ i18n('cb_ask_desc') if i18n('cb_ask_desc') != 'cb_ask_desc' else ('弹出确认对话框' if lang == 'zh' else 'Show confirmation dialog') }}</p>
+                    </button>
+                    <button onclick="setCloseBehavior('quit')" id="cb-quit"
+                        class="mode-btn px-3 py-2.5 rounded-lg border border-dark-600 text-sm text-center transition-all hover:border-accent-blue">
+                        <i class="fas fa-power-off block text-lg mb-1"></i>
+                        {{ i18n('cb_quit') if i18n('cb_quit') != 'cb_quit' else ('直接退出' if lang == 'zh' else 'Quit Directly') }}
+                        <p class="text-xs text-gray-500 mt-0.5">{{ i18n('cb_quit_desc') if i18n('cb_quit_desc') != 'cb_quit_desc' else ('关闭窗口并退出程序' if lang == 'zh' else 'Close window and exit') }}</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保持登录 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-user-check mr-2 text-accent-blue"></i>
+            {{ i18n('keep_login') if i18n('keep_login') != 'keep_login' else ('关闭后保持登录' if lang == 'zh' else 'Stay Logged In') }}
+        </div>
+        <div class="card-body">
+            <div class="flex items-center justify-between cursor-pointer">
+                <div>
+                    <p class="text-sm">{{ i18n('keep_login') if i18n('keep_login') != 'keep_login' else ('关闭后保持登录' if lang == 'zh' else 'Stay Logged In') }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">{{ i18n('keep_login_desc') if i18n('keep_login_desc') != 'keep_login_desc' else ('关闭程序后不自动退出登录，下次打开无需重新输入密码' if lang == 'zh' else 'Keep login session after closing the app') }}</p>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer text-sm" style="color:#94a3b8;" onclick="toggleKeepLogin()">
+                    <span id="keep-login-label">{{ i18n('keep_login') if i18n('keep_login') != 'keep_login' else ('关闭后保持登录' if lang == 'zh' else 'Stay Logged In') }}</span>
+                    <div class="relative" style="width:44px;height:24px;">
+                        <div id="keep-login-track" style="position:absolute;inset:0;border-radius:12px;background:#334155;transition:background 0.2s;"></div>
+                        <div id="keep-login-dot" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#64748b;transition:all 0.2s;"></div>
+                    </div>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- 密码管理 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-shield-alt mr-2 text-accent-green"></i>
+            {{ i18n('password_settings') if i18n('password_settings') != 'password_settings' else ('密码管理' if lang == 'zh' else 'Password') }}
+        </div>
+        <div class="card-body space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="form-label text-xs text-gray-400">{{ i18n('current_password') if i18n('current_password') != 'current_password' else ('当前密码' if lang == 'zh' else 'Current Password') }}</label>
+                    <input type="password" id="pwd-old" class="form-input text-sm" placeholder="{{ i18n('current_password') if i18n('current_password') != 'current_password' else ('当前密码' if lang == 'zh' else 'Current Password') }}">
+                </div>
+                <div>
+                    <label class="form-label text-xs text-gray-400">{{ i18n('new_password') if i18n('new_password') != 'new_password' else ('新密码' if lang == 'zh' else 'New Password') }}</label>
+                    <input type="password" id="pwd-new" class="form-input text-sm" placeholder="{{ i18n('min_4_chars') if i18n('min_4_chars') != 'min_4_chars' else ('至少4位' if lang == 'zh' else 'Min 4 chars') }}">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="changePassword()" class="btn-primary text-sm">
+                    <i class="fas fa-key mr-1"></i> {{ i18n('change_password') if i18n('change_password') != 'change_password' else ('修改密码' if lang == 'zh' else 'Change Password') }}
+                </button>
+                <button onclick="resetPassword()" class="btn-secondary text-sm">
+                    <i class="fas fa-undo mr-1"></i> {{ i18n('reset_password') if i18n('reset_password') != 'reset_password' else ('重置为默认' if lang == 'zh' else 'Reset to Default') }}
+                </button>
+            </div>
+            <p class="text-xs text-gray-500">{{ i18n('reset_password_hint') if i18n('reset_password_hint') != 'reset_password_hint' else ('重置将把密码恢复为 admin' if lang == 'zh' else 'Reset will restore password to admin') }}</p>
+        </div>
+    </div>
+
+    <!-- 翻译设置 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-language mr-2 text-accent-purple"></i>
+            {{ i18n('translation_settings') }}
+        </div>
+        <div class="card-body space-y-4">
+            <!-- 翻译模式选择 -->
+            <div>
+                <label class="form-label">{{ i18n('translation_mode') }}</label>
+                <div class="grid grid-cols-3 gap-2 mt-1">
+                    <button onclick="setTranslationMode('offline')" id="mode-offline"
+                        class="mode-btn px-3 py-2 rounded-lg border border-dark-600 text-sm text-center transition-all hover:border-accent-blue">
+                        <i class="fas fa-database block text-lg mb-1"></i>
+                        {{ i18n('mode_offline') }}
+                        <p class="text-xs text-gray-500 mt-0.5">{{ i18n('mode_offline_desc') }}</p>
+                    </button>
+                    <button onclick="setTranslationMode('online')" id="mode-online"
+                        class="mode-btn px-3 py-2 rounded-lg border border-dark-600 text-sm text-center transition-all hover:border-accent-blue">
+                        <i class="fas fa-cloud block text-lg mb-1"></i>
+                        {{ i18n('mode_online') }}
+                        <p class="text-xs text-gray-500 mt-0.5">{{ i18n('mode_online_desc') }}</p>
+                    </button>
+                    <button onclick="setTranslationMode('hybrid')" id="mode-hybrid"
+                        class="mode-btn px-3 py-2 rounded-lg border border-dark-600 text-sm text-center transition-all hover:border-accent-blue">
+                        <i class="fas fa-layer-group block text-lg mb-1"></i>
+                        {{ i18n('mode_hybrid') }}
+                        <p class="text-xs text-gray-500 mt-0.5">{{ i18n('mode_hybrid_desc') }}</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 翻译 API 列表 -->
+            <div class="flex items-center justify-between">
+                <p class="text-sm text-gray-400">{{ i18n('translation_api_list') }}</p>
+                <button onclick="openTranslationApiModal()" class="btn-primary text-sm">
+                    <i class="fas fa-plus mr-1"></i> {{ i18n('add_custom_api') }}
+                </button>
+            </div>
+            <div id="translation-apis-list" class="space-y-2">
+                <p class="text-sm text-gray-500">{{ i18n('loading') }}...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- API 密钥管理 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-key mr-2 text-accent-blue"></i>
+            {{ i18n('settings_api_keys') }}
+        </div>
+        <div class="card-body space-y-4">
+            <div class="flex items-center justify-between">
+                <p class="text-sm text-gray-400">{{ i18n('api_key') }}</p>
+                <button onclick="createApiKey()" class="btn-primary text-sm">
+                    <i class="fas fa-plus mr-1"></i> {{ i18n('generate_key') }}
+                </button>
+            </div>
+            <div id="api-keys-list" class="space-y-2">
+                <p class="text-sm text-gray-500">{{ i18n('no_data') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Webhook 配置 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-bell mr-2 text-accent-orange"></i>
+            {{ i18n('settings_webhooks') }}
+        </div>
+        <div class="card-body space-y-4">
+            <div class="flex items-center justify-between">
+                <p class="text-sm text-gray-400">{{ i18n('webhook') }}</p>
+                <button onclick="openCreateWebhook()" class="btn-primary text-sm">
+                    <i class="fas fa-plus mr-1"></i> {{ i18n('add') }}
+                </button>
+            </div>
+            <div id="webhooks-list" class="space-y-2">
+                <p class="text-sm text-gray-500">{{ i18n('no_data') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 危险操作 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-exclamation-triangle mr-2 text-accent-red"></i>
+            {{ i18n('warning') }}
+        </div>
+        <div class="card-body">
+            <button onclick="clearAllData()" class="btn-danger-sm">
+                <i class="fas fa-trash mr-1"></i> {{ i18n('settings_clear_data') }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 翻译 API 配置模态框 -->
+<div id="translation-api-modal" class="hidden">
+    <div class="p-6 space-y-4" style="min-width: 480px; max-height: 80vh; overflow-y: auto;">
+        <h3 class="text-lg font-semibold text-white">{{ i18n('translation_api_config') }}</h3>
+        <input type="hidden" id="tap-edit-id" value="">
+        <div>
+            <label class="form-label">{{ i18n('api_name') }}</label>
+            <input type="text" id="tap-name" class="form-input" placeholder="{{ i18n('api_name_placeholder') }}">
+        </div>
+        <div>
+            <label class="form-label">{{ i18n('api_type') }}</label>
+            <select id="tap-type" class="form-input" onchange="onApiTypeChange()">
+                <option value="sogou">搜狗翻译</option>
+                <option value="bing">必应翻译</option>
+                <option value="ai">AI 大模型（豆包/DeepSeek/通义千问）</option>
+                <option value="baidu">百度翻译</option>
+                <option value="libretranslate">LibreTranslate</option>
+                <option value="google">Google Translate</option>
+                <option value="deepl">DeepL</option>
+                <option value="custom">{{ i18n('custom_api') }}</option>
+            </select>
+        </div>
+        <div id="tap-url-group">
+            <label class="form-label">API URL</label>
+            <input type="text" id="tap-url" class="form-input" placeholder="https://libretranslate.com">
+        </div>
+        <div>
+            <label class="form-label">API Key</label>
+            <input type="password" id="tap-key" class="form-input" placeholder="{{ i18n('api_key_optional') }}">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="form-label">{{ i18n('source_lang') }}</label>
+                <select id="tap-source-lang" class="form-input">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                    <option value="ja">日本語</option>
+                    <option value="ko">한국어</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">{{ i18n('target_lang') }}</label>
+                <select id="tap-target-lang" class="form-input">
+                    <option value="zh">中文</option>
+                    <option value="en">English</option>
+                    <option value="ja">日本語</option>
+                    <option value="ko">한국어</option>
+                </select>
+            </div>
+        </div>
+        <!-- 自定义 API 高级选项 -->
+        <div id="tap-custom-advanced" class="hidden space-y-3">
+            <div>
+                <label class="form-label">{{ i18n('response_path') }}</label>
+                <input type="text" id="tap-response-path" class="form-input" placeholder="translatedText" value="translatedText">
+                <p class="text-xs text-gray-500 mt-1">{{ i18n('response_path_hint') }}</p>
+            </div>
+            <div>
+                <label class="form-label">{{ i18n('request_body_template') }}</label>
+                <textarea id="tap-body-template" class="form-input" rows="3" placeholder='{"q": "{{text}}", "source": "{{source_lang}}", "target": "{{target_lang}}"}'></textarea>
+                <p class="text-xs text-gray-500 mt-1">{{ i18n('body_template_hint') }}</p>
+            </div>
+        </div>
+        <div class="flex justify-between gap-2 pt-2">
+            <button onclick="testTranslationApi()" class="btn-secondary text-sm" id="tap-test-btn">
+                <i class="fas fa-plug mr-1"></i> {{ i18n('test_connection') }}
+            </button>
+            <div class="flex gap-2">
+                <button onclick="closeModal()" class="btn-secondary">{{ i18n('cancel') }}</button>
+                <button onclick="saveTranslationApi()" class="btn-primary">{{ i18n('save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 网络代理配置 -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-globe mr-2 text-accent-purple"></i>
+        <span>{{ i18n('settings_proxy') if i18n('settings_proxy') != 'settings_proxy' else ('网络代理' if lang == 'zh' else 'Network Proxy') }}</span>
+        <label class="ml-auto flex items-center gap-2 cursor-pointer text-sm" style="color:#94a3b8;" onclick="toggleProxyEnabled()">
+            <span id="proxy-enable-label">{{ i18n('proxy_enable') if i18n('proxy_enable') != 'proxy_enable' else ('启用代理' if lang == 'zh' else 'Enable Proxy') }}</span>
+            <div class="relative" style="width:44px;height:24px;">
+                <div id="proxy-toggle-track" style="position:absolute;inset:0;border-radius:12px;background:#334155;transition:background 0.2s;"></div>
+                <div id="proxy-toggle-dot" style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#64748b;transition:all 0.2s;"></div>
+            </div>
+        </label>
+    </div>
+    <div class="card-body space-y-4" id="proxy-config-body" style="opacity:0.5;pointer-events:none;">
+        <!-- 代理类型 -->
+        <div>
+            <label class="form-label">{{ i18n('proxy_type') if i18n('proxy_type') != 'proxy_type' else ('代理类型' if lang == 'zh' else 'Proxy Type') }}</label>
+            <div class="grid grid-cols-2 gap-2 mt-1">
+                <button onclick="setProxyType('http')" id="pt-http"
+                    class="mode-btn px-3 py-2 rounded-lg border border-dark-600 text-sm text-center transition-all hover:border-accent-blue">
+                    <i class="fas fa-globe block text-lg mb-1"></i>
+                    HTTP(S)
+                </button>
+                <button onclick="setProxyType('socks5')" id="pt-socks5"
+                    class="mode-btn px-3 py-2 rounded-lg border border-dark-600 text-sm text-center transition-all hover:border-accent-blue">
+                    <i class="fas fa-socks block text-lg mb-1"></i>
+                    SOCKS5
+                </button>
+            </div>
+        </div>
+        <!-- 服务器地址 -->
+        <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2">
+                <label class="form-label">{{ i18n('proxy_host') if i18n('proxy_host') != 'proxy_host' else ('服务器地址' if lang == 'zh' else 'Host') }}</label>
+                <input type="text" id="proxy-host" class="form-input" placeholder="127.0.0.1">
+            </div>
+            <div>
+                <label class="form-label">{{ i18n('proxy_port') if i18n('proxy_port') != 'proxy_port' else ('端口' if lang == 'zh' else 'Port') }}</label>
+                <input type="number" id="proxy-port" class="form-input" placeholder="7890" min="1" max="65535">
+            </div>
+        </div>
+        <!-- 认证 -->
+        <div>
+            <label class="form-label flex items-center gap-2">
+                {{ i18n('proxy_auth') if i18n('proxy_auth') != 'proxy_auth' else ('认证（可选）' if lang == 'zh' else 'Authentication (Optional)') }}
+                <input type="checkbox" id="proxy-auth-toggle" class="rounded" onchange="toggleProxyAuth()">
+            </label>
+            <div id="proxy-auth-fields" class="hidden grid grid-cols-2 gap-3 mt-2">
+                <input type="text" id="proxy-username" class="form-input" placeholder="{{ i18n('proxy_username') if i18n('proxy_username') != 'proxy_username' else ('用户名' if lang == 'zh' else 'Username') }}">
+                <input type="password" id="proxy-password" class="form-input" placeholder="{{ i18n('proxy_password') if i18n('proxy_password') != 'proxy_password' else ('密码' if lang == 'zh' else 'Password') }}">
+            </div>
+        </div>
+        <!-- 操作按钮 -->
+        <div class="flex items-center justify-between pt-2">
+            <p class="text-xs" style="color:#64748b;">{{ i18n('proxy_desc') if i18n('proxy_desc') != 'proxy_desc' else ('代理将应用于所有外部网络请求（翻译API、Webhook等）' if lang == 'zh' else 'Proxy applies to all external requests (Translation API, Webhooks, etc.)') }}</p>
+            <div class="flex items-center gap-2">
+                <button onclick="testProxyConnection()" class="btn-secondary text-sm" id="proxy-test-btn">
+                    <i class="fas fa-plug mr-1.5"></i>{{ i18n('proxy_test') if i18n('proxy_test') != 'proxy_test' else ('测试连接' if lang == 'zh' else 'Test Connection') }}
+                </button>
+                <button onclick="saveProxyConfig()" class="btn-primary text-sm">
+                    <i class="fas fa-save mr-1.5"></i>{{ i18n('save') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 创建 Webhook 模态框 -->
+<div id="webhook-modal" class="hidden">
+    <div class="p-6 space-y-4" style="min-width: 400px;">
+        <h3 class="text-lg font-semibold text-white">{{ i18n('webhook') }}</h3>
+        <div>
+            <label class="form-label">{{ i18n('webhook_url') }}</label>
+            <input type="text" id="webhook-url" class="form-input" placeholder="https://example.com/webhook">
+        </div>
+        <div>
+            <label class="form-label">{{ i18n('webhook_events') }}</label>
+            <input type="text" id="webhook-events" class="form-input" placeholder="import,report_generated" value="import,report_generated">
+        </div>
+        <div>
+            <label class="form-label">Secret</label>
+            <input type="text" id="webhook-secret" class="form-input" placeholder="Optional signing secret">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+            <button onclick="closeModal()" class="btn-secondary">{{ i18n('cancel') }}</button>
+            <button onclick="createWebhook()" class="btn-primary">{{ i18n('save') }}</button>
+        </div>
+    </div>
+</div>
+
+<!-- 版本更新 -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-cloud-arrow-down mr-2 text-accent-blue"></i>
+        {{ i18n('update_settings') if i18n('update_settings') != 'update_settings' else ('版本更新' if lang == 'zh' else 'Update') }}
+        <span class="ml-auto text-xs text-gray-500" id="update-current-version"></span>
+    </div>
+    <div class="card-body space-y-3">
+        <!-- 更新状态 -->
+        <div id="update-status-area" class="text-sm text-gray-400">
+            {{ i18n('update_ready') if i18n('update_ready') != 'update_ready' else ('就绪' if lang == 'zh' else 'Ready') }}
+        </div>
+        <!-- 新版本信息 -->
+        <div id="update-new-version" class="hidden">
+            <div class="p-3 rounded-lg" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2);">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-blue-400" id="update-version-text"></span>
+                    <span class="text-xs text-gray-500" id="update-release-date"></span>
+                </div>
+                <div id="update-release-notes" class="text-xs text-gray-400 max-h-32 overflow-y-auto"></div>
+            </div>
+        </div>
+        <!-- 下载进度 -->
+        <div id="update-progress" class="hidden">
+            <div class="w-full rounded-full h-2 mb-2" style="background: #1e293b;">
+                <div id="update-progress-bar" class="h-2 rounded-full transition-all" style="background: #3b82f6; width: 0%;"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500">
+                <span id="update-progress-text">0%</span>
+                <span id="update-progress-detail"></span>
+            </div>
+        </div>
+        <!-- 操作按钮 -->
+        <div class="flex gap-2">
+            <button onclick="manualCheckUpdate()" class="btn-primary text-sm" id="update-check-btn">
+                <i class="fas fa-sync-alt mr-1"></i> {{ i18n('update_check') if i18n('update_check') != 'update_check' else ('检查更新' if lang == 'zh' else 'Check for Updates') }}
+            </button>
+            <button onclick="downloadUpdate()" class="btn-primary text-sm hidden" id="update-download-btn">
+                <i class="fas fa-download mr-1"></i> {{ i18n('update_download') if i18n('update_download') != 'update_download' else ('下载更新' if lang == 'zh' else 'Download Update') }}
+            </button>
+            <button onclick="installUpdate()" class="btn-primary text-sm hidden" id="update-install-btn" style="background: #22c55e;">
+                <i class="fas fa-rotate mr-1"></i> {{ i18n('update_install') if i18n('update_install') != 'update_install' else ('重启安装' if lang == 'zh' else 'Restart & Install') }}
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ============================================================
+// 翻译设置
+// ============================================================
+let translationConfig = { mode: 'offline', apis: [], active_api_id: '' };
+
+function loadTranslationConfig() {
+    fetch('/api/translation/config')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                translationConfig = data;
+                renderTranslationMode();
+                renderTranslationApis();
+            }
+        });
+}
+
+function renderTranslationMode() {
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.remove('border-accent-blue', 'bg-accent-blue/10');
+        btn.classList.add('border-dark-600');
+    });
+    const activeBtn = document.getElementById('mode-' + translationConfig.mode);
+    if (activeBtn) {
+        activeBtn.classList.remove('border-dark-600');
+        activeBtn.classList.add('border-accent-blue', 'bg-accent-blue/10');
+    }
+}
+
+function setTranslationMode(mode) {
+    fetch('/api/translation/mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: mode }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            translationConfig.mode = mode;
+            renderTranslationMode();
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message, 'error');
+        }
+    });
+}
+
+function renderTranslationApis() {
+    const container = document.getElementById('translation-apis-list');
+    const apis = translationConfig.apis || [];
+    if (apis.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500">{{ i18n("no_data") }}</p>';
+        return;
+    }
+    const typeIcons = {
+        'sogou': 'fa-paw',
+        'bing': 'fa-b',
+        'ai': 'fa-robot',
+        'baidu': 'fa-language',
+        'google': 'fa-google',
+        'deepl': 'fa-language',
+        'libretranslate': 'fa-book-open',
+        'custom': 'fa-cog',
+    };
+    const typeLabels = {
+        'sogou': 'Sogou Translate',
+        'bing': 'Bing Translate',
+        'ai': 'AI Model',
+        'baidu': 'Baidu Translate',
+        'google': 'Google Translate',
+        'deepl': 'DeepL',
+        'libretranslate': 'LibreTranslate',
+        'custom': '{{ i18n("custom_api") }}',
+    };
+    container.innerHTML = apis.map(api => `
+        <div class="flex items-center justify-between p-3 rounded-lg bg-dark-800 border ${api.is_active ? 'border-accent-blue' : 'border-dark-600'}">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg ${api.is_active ? 'bg-accent-blue/20 text-accent-blue' : 'bg-dark-700 text-gray-400'} flex items-center justify-center">
+                    <i class="fas ${typeIcons[api.type] || 'fa-globe'} text-sm"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-white">${escapeHtml(api.name)}</p>
+                    <p class="text-xs text-gray-500">${typeLabels[api.type] || api.type} | ${api.source_lang || 'en'} → ${api.target_lang || 'zh'}${api.is_builtin ? ' | {{ i18n("builtin") }}' : ''}</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                ${api.is_active
+                    ? '<span class="text-xs px-2 py-0.5 rounded bg-green-900/30 text-green-400">Active</span>'
+                    : `<button onclick="activateTranslationApi('${api.id}')" class="btn-secondary text-xs">{{ i18n("activate") }}</button>`
+                }
+                <button onclick="testTranslationApiById('${api.id}')" class="btn-secondary text-xs" title="{{ i18n('proxy_test') if i18n('proxy_test') != 'proxy_test' else ('测试连接' if lang == 'zh' else 'Test') }}"><i class="fas fa-vial"></i></button>
+                <button onclick="editTranslationApi('${api.id}')" class="btn-secondary text-xs" title="{{ i18n('edit') if i18n('edit') != 'edit' else ('编辑' if lang == 'zh' else 'Edit') }}"><i class="fas fa-pen"></i></button>
+                ${!api.is_builtin ? `<button onclick="deleteTranslationApi('${api.id}')" class="btn-danger-sm text-xs" title="{{ i18n('delete') if i18n('delete') != 'delete' else ('删除' if lang == 'zh' else 'Delete') }}"><i class="fas fa-trash"></i></button>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function openTranslationApiModal(api) {
+    document.getElementById('tap-edit-id').value = api ? api.id : '';
+    document.getElementById('tap-name').value = api ? api.name : '';
+    document.getElementById('tap-type').value = api ? api.type : 'libretranslate';
+    document.getElementById('tap-url').value = api ? (api.api_url || '') : 'https://libretranslate.com';
+    document.getElementById('tap-key').value = api ? (api.api_key || '') : '';
+    document.getElementById('tap-source-lang').value = api ? (api.source_lang || 'en') : 'en';
+    document.getElementById('tap-target-lang').value = api ? (api.target_lang || 'zh') : 'zh';
+    document.getElementById('tap-response-path').value = api ? (api.response_path || 'translatedText') : 'translatedText';
+    document.getElementById('tap-body-template').value = api ? (api.custom_body_template || '') : '';
+    onApiTypeChange();
+    openModal('translation-api-modal');
+}
+
+function editTranslationApi(apiId) {
+    const api = translationConfig.apis.find(a => a.id === apiId);
+    if (api) openTranslationApiModal(api);
+}
+
+function onApiTypeChange() {
+    const type = document.getElementById('tap-type').value;
+    const urlGroup = document.getElementById('tap-url-group');
+    const customAdvanced = document.getElementById('tap-custom-advanced');
+    const urlInput = document.getElementById('tap-url');
+
+    // 搜狗、必应、Google 不需要 URL，AI 等其他类型需要显示 URL 输入框
+    const noUrlTypes = ['sogou', 'bing', 'google'];
+    urlGroup.style.display = noUrlTypes.includes(type) ? 'none' : 'block';
+    customAdvanced.classList.toggle('hidden', type !== 'custom');
+
+    // AI 类型的 API Key 格式提示
+    const keyInput = document.getElementById('tap-key');
+    if (type === 'ai') {
+        keyInput.placeholder = 'API Key:模型名（如 sk-xxx:doubao-pro-32k）';
+    } else if (type === 'baidu') {
+        keyInput.placeholder = 'APPID:密钥';
+    } else {
+        keyInput.placeholder = '{{ i18n("api_key_optional") }}';
+    }
+
+    const defaultUrls = {
+        'ai': 'https://ark.cn-beijing.volces.com/api/v3',
+        'baidu': 'https://fanyi-api.baidu.com',
+        'libretranslate': 'https://libretranslate.com',
+        'deepl': 'https://api-free.deepl.com',
+        'custom': '',
+    };
+    if (defaultUrls[type] && !document.getElementById('tap-edit-id').value) {
+        urlInput.value = defaultUrls[type];
+    }
+}
+
+function saveTranslationApi() {
+    const id = document.getElementById('tap-edit-id').value;
+    const data = {
+        id: id,
+        name: document.getElementById('tap-name').value.trim(),
+        type: document.getElementById('tap-type').value,
+        api_url: document.getElementById('tap-url').value.trim(),
+        api_key: document.getElementById('tap-key').value.trim(),
+        source_lang: document.getElementById('tap-source-lang').value,
+        target_lang: document.getElementById('tap-target-lang').value,
+        response_path: document.getElementById('tap-response-path').value.trim(),
+        custom_body_template: document.getElementById('tap-body-template').value.trim(),
+        is_builtin: false,
+        enabled: true,
+    };
+    if (!data.name) { showToast('{{ i18n("api_name_required") }}', 'error'); return; }
+
+    fetch('/api/translation/apis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            showToast(result.message, 'success');
+            closeModal();
+            loadTranslationConfig();
+        } else {
+            showToast(result.message, 'error');
+        }
+    });
+}
+
+function activateTranslationApi(apiId) {
+    fetch('/api/translation/apis/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: apiId }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast(data.message, 'success');
+            loadTranslationConfig();
+        } else {
+            showToast(data.message, 'error');
+        }
+    });
+}
+
+function deleteTranslationApi(apiId) {
+    if (!confirm('{{ i18n("confirm_delete_api") }}')) return;
+    fetch(`/api/translation/apis/${apiId}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+                loadTranslationConfig();
+            } else {
+                showToast(data.message, 'error');
+            }
+        });
+}
+
+function testTranslationApi() {
+    const btn = document.getElementById('tap-test-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> {{ i18n("testing") }}...';
+
+    const data = {
+        name: document.getElementById('tap-name').value.trim(),
+        type: document.getElementById('tap-type').value,
+        api_url: document.getElementById('tap-url').value.trim(),
+        api_key: document.getElementById('tap-key').value.trim(),
+        source_lang: document.getElementById('tap-source-lang').value,
+        target_lang: document.getElementById('tap-target-lang').value,
+        response_path: document.getElementById('tap-response-path').value.trim(),
+        custom_body_template: document.getElementById('tap-body-template').value.trim(),
+    };
+
+    fetch('/api/translation/apis/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+    .then(r => r.json())
+    .then(result => {
+        showToast(result.message, result.success ? 'success' : 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plug mr-1"></i> {{ i18n("test_connection") }}';
+    })
+    .catch(() => {
+        showToast('{{ i18n("test_failed") }}', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plug mr-1"></i> {{ i18n("test_connection") }}';
+    });
+}
+
+function testTranslationApiById(apiId) {
+    showToast('{{ i18n("testing") }}...', 'info');
+    fetch('/api/translation/apis/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: apiId }),
+    })
+    .then(r => r.json())
+    .then(result => {
+        showToast(result.message, result.success ? 'success' : 'error');
+    });
+}
+
+// ============================================================
+// API 密钥管理
+// ============================================================
+function loadApiKeys() {
+    fetch('/api/settings/api-keys')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('api-keys-list');
+            if (!data.success || !data.keys || data.keys.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500">{{ i18n("no_data") }}</p>';
+                return;
+            }
+            container.innerHTML = data.keys.map(key => `
+                <div class="flex items-center justify-between p-3 rounded-lg bg-dark-800 border border-dark-600">
+                    <div>
+                        <p class="text-sm font-medium text-white">${escapeHtml(key.name)}</p>
+                        <p class="text-xs text-gray-500">ID: ${key.id} | Created: ${key.created_at}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-0.5 rounded ${key.is_active ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}">
+                            ${key.is_active ? 'Active' : 'Revoked'}
+                        </span>
+                        ${key.is_active ? `<button onclick="revokeApiKey('${key.id}')" class="btn-danger-sm text-xs">Revoke</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        });
+}
+
+function createApiKey() {
+    const name = prompt('Enter API key name:');
+    if (!name) return;
+    fetch('/api/settings/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('API Key: ' + data.key + '\n\nPlease save this key. It will not be shown again.');
+            loadApiKeys();
+        } else {
+            showToast(data.message, 'error');
+        }
+    });
+}
+
+function revokeApiKey(keyId) {
+    if (!confirm('Are you sure you want to revoke this API key?')) return;
+    fetch(`/api/settings/api-keys/${keyId}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast('API key revoked', 'success');
+                loadApiKeys();
+            } else {
+                showToast(data.message, 'error');
+            }
+        });
+}
+
+// ============================================================
+// Webhook 管理
+// ============================================================
+function loadWebhooks() {
+    fetch('/api/settings/webhooks')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('webhooks-list');
+            if (!data.success || !data.webhooks || data.webhooks.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500">{{ i18n("no_data") }}</p>';
+                return;
+            }
+            container.innerHTML = data.webhooks.map(wh => `
+                <div class="flex items-center justify-between p-3 rounded-lg bg-dark-800 border border-dark-600">
+                    <div>
+                        <p class="text-sm font-medium text-white">${escapeHtml(wh.url)}</p>
+                        <p class="text-xs text-gray-500">Events: ${Array.isArray(wh.events) ? wh.events.join(', ') : wh.events} | Created: ${wh.created_at}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="testWebhook('${escapeHtml(wh.url)}', '${wh.secret || ''}')" class="btn-secondary text-xs">Test</button>
+                        <button onclick="deleteWebhook('${wh.id}')" class="btn-danger-sm text-xs">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        });
+}
+
+function openCreateWebhook() {
+    document.getElementById('webhook-url').value = '';
+    document.getElementById('webhook-events').value = 'import,report_generated';
+    document.getElementById('webhook-secret').value = '';
+    openModal('webhook-modal');
+}
+
+function createWebhook() {
+    const url = document.getElementById('webhook-url').value.trim();
+    const events = document.getElementById('webhook-events').value.split(',').map(e => e.trim()).filter(Boolean);
+    const secret = document.getElementById('webhook-secret').value.trim();
+    if (!url) { showToast('URL is required', 'error'); return; }
+    fetch('/api/settings/webhooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, events, secret }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Webhook created', 'success');
+            closeModal();
+            loadWebhooks();
+        } else {
+            showToast(data.message, 'error');
+        }
+    });
+}
+
+function deleteWebhook(id) {
+    if (!confirm('Delete this webhook?')) return;
+    fetch(`/api/settings/webhooks/${id}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Webhook deleted', 'success');
+                loadWebhooks();
+            } else {
+                showToast(data.message, 'error');
+            }
+        });
+}
+
+function testWebhook(url, secret) {
+    fetch('/api/settings/webhooks/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, secret }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        showToast(data.message, data.success ? 'success' : 'error');
+    });
+}
+
+function clearAllData() {
+    if (!confirm('This will delete ALL vulnerabilities, history, and settings. Continue?')) return;
+    fetch('/api/vulnerabilities', { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message, 'success');
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadTranslationConfig();
+    loadApiKeys();
+    loadWebhooks();
+    loadGeneralSettings();
+    loadProxyConfig();
+});
+
+// ============================================================
+// 通用设置（桌面版）
+// ============================================================
+
+function isElectronApp() {
+    return typeof window.electronAPI !== 'undefined' && window.electronAPI.getAppInfo;
+}
+
+function setKeepLoginUI(enabled) {
+    const track = document.getElementById('keep-login-track');
+    const dot = document.getElementById('keep-login-dot');
+    const label = document.getElementById('keep-login-label');
+    if (!track || !dot) return;
+    if (enabled) {
+        track.style.background = '#3b82f6';
+        dot.style.left = '22px';
+        dot.style.background = '#ffffff';
+        if (label) label.style.color = '#3b82f6';
+    } else {
+        track.style.background = '#334155';
+        dot.style.left = '2px';
+        dot.style.background = '#64748b';
+        if (label) label.style.color = '#94a3b8';
+    }
+}
+
+let keepLoginState = false;
+
+async function toggleKeepLogin() {
+    if (!isElectronApp()) return;
+    keepLoginState = !keepLoginState;
+    setKeepLoginUI(keepLoginState);
+    try {
+        await window.electronAPI.saveSettings({ keepLogin: keepLoginState });
+    } catch (e) {
+        console.error('Failed to save keepLogin:', e);
+        keepLoginState = !keepLoginState;
+        setKeepLoginUI(keepLoginState);
+    }
+}
+
+async function loadGeneralSettings() {
+    if (!isElectronApp()) return;
+    try {
+        const info = await window.electronAPI.getAppInfo();
+        if (!info.isElectron) return;
+        document.getElementById('general-settings-card').style.display = '';
+
+        const settings = await window.electronAPI.getSettings();
+        updateCloseBehaviorUI(settings.closeBehavior || 'minimize');
+
+        // 保持登录开关
+        keepLoginState = !!settings.keepLogin;
+        setKeepLoginUI(keepLoginState);
+    } catch (e) {
+        console.error('Failed to load general settings:', e);
+    }
+}
+
+function updateCloseBehaviorUI(behavior) {
+    ['minimize', 'ask', 'quit'].forEach(b => {
+        const btn = document.getElementById('cb-' + b);
+        if (!btn) return;
+        if (b === behavior) {
+            btn.classList.add('border-accent-blue', 'bg-accent-blue/10');
+            btn.classList.remove('border-dark-600');
+        } else {
+            btn.classList.remove('border-accent-blue', 'bg-accent-blue/10');
+            btn.classList.add('border-dark-600');
+        }
+    });
+}
+
+async function setCloseBehavior(behavior) {
+    if (!isElectronApp()) {
+        showToast(currentLang === 'zh' ? '此设置仅桌面版可用' : 'This setting is only available in desktop app', 'error');
+        return;
+    }
+    try {
+        const result = await window.electronAPI.saveSettings({ closeBehavior: behavior });
+        if (result && result.success) {
+            updateCloseBehaviorUI(behavior);
+            showToast(
+                behavior === 'minimize' ? (currentLang === 'zh' ? '已设置为最小化到托盘' : 'Set to minimize to tray') :
+                behavior === 'ask' ? (currentLang === 'zh' ? '已设置为每次询问' : 'Set to always ask') :
+                (currentLang === 'zh' ? '已设置为直接退出' : 'Set to quit directly'),
+                'success'
+            );
+        } else {
+            showToast(currentLang === 'zh' ? '保存失败' : 'Save failed', 'error');
+        }
+    } catch (e) {
+        console.error('Failed to save close behavior:', e);
+        showToast(currentLang === 'zh' ? '保存失败: ' + e.message : 'Save failed: ' + e.message, 'error');
+    }
+}
+
+// ============================================================
+// 密码管理
+// ============================================================
+
+async function changePassword() {
+    const oldPwd = document.getElementById('pwd-old').value;
+    const newPwd = document.getElementById('pwd-new').value;
+    if (!oldPwd || !newPwd) {
+        showToast(currentLang === 'zh' ? '请填写当前密码和新密码' : 'Please fill in both fields', 'warning');
+        return;
+    }
+    try {
+        const resp = await fetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ old_password: oldPwd, new_password: newPwd }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast(currentLang === 'zh' ? '密码修改成功' : 'Password changed', 'success');
+            document.getElementById('pwd-old').value = '';
+            document.getElementById('pwd-new').value = '';
+        } else {
+            showToast(data.message || 'Failed', 'error');
+        }
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function resetPassword() {
+    const oldPwd = document.getElementById('pwd-old').value;
+    if (!oldPwd) {
+        showToast(currentLang === 'zh' ? '请输入当前密码以确认重置' : 'Enter current password to confirm reset', 'warning');
+        return;
+    }
+    if (!confirm(currentLang === 'zh' ? '确定要将密码重置为 admin 吗？' : 'Reset password to admin?')) return;
+    try {
+        const resp = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: oldPwd }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast(currentLang === 'zh' ? '密码已重置为 admin' : 'Password reset to admin', 'success');
+            document.getElementById('pwd-old').value = '';
+            document.getElementById('pwd-new').value = '';
+        } else {
+            showToast(data.message || 'Failed', 'error');
+        }
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+// ============================================================
+// 网络代理配置
+// ============================================================
+
+let proxyConfig = { enabled: false, type: 'http', host: '', port: '', username: '', password: '' };
+
+async function loadProxyConfig() {
+    try {
+        const resp = await fetch('/api/settings/proxy');
+        const data = await resp.json();
+        if (data.success && data.config) {
+            proxyConfig = data.config;
+            renderProxyUI();
+        }
+    } catch (e) {
+        console.error('Failed to load proxy config:', e);
+    }
+}
+
+function renderProxyUI() {
+    const body = document.getElementById('proxy-config-body');
+    updateProxyToggle(proxyConfig.enabled);
+    if (body) {
+        body.style.opacity = proxyConfig.enabled ? '1' : '0.5';
+        body.style.pointerEvents = proxyConfig.enabled ? 'auto' : 'none';
+    }
+    document.getElementById('proxy-host').value = proxyConfig.host || '';
+    document.getElementById('proxy-port').value = proxyConfig.port || '';
+    document.getElementById('proxy-username').value = proxyConfig.username || '';
+    document.getElementById('proxy-password').value = proxyConfig.password || '';
+    setProxyType(proxyConfig.type || 'http');
+    // 如果有用户名则显示认证字段
+    if (proxyConfig.username) {
+        document.getElementById('proxy-auth-toggle').checked = true;
+        document.getElementById('proxy-auth-fields').classList.remove('hidden');
+    }
+}
+
+function updateProxyToggle(enabled) {
+    const track = document.getElementById('proxy-toggle-track');
+    const dot = document.getElementById('proxy-toggle-dot');
+    const label = document.getElementById('proxy-enable-label');
+    if (!track || !dot) return;
+    if (enabled) {
+        track.style.background = '#3b82f6';
+        dot.style.left = '22px';
+        dot.style.background = '#ffffff';
+        if (label) label.style.color = '#3b82f6';
+    } else {
+        track.style.background = '#334155';
+        dot.style.left = '2px';
+        dot.style.background = '#64748b';
+        if (label) label.style.color = '#94a3b8';
+    }
+}
+
+function toggleProxyEnabled() {
+    proxyConfig.enabled = !proxyConfig.enabled;
+    updateProxyToggle(proxyConfig.enabled);
+    const body = document.getElementById('proxy-config-body');
+    body.style.opacity = proxyConfig.enabled ? '1' : '0.5';
+    body.style.pointerEvents = proxyConfig.enabled ? 'auto' : 'none';
+}
+
+function setProxyType(type) {
+    proxyConfig.type = type;
+    ['http', 'socks5'].forEach(t => {
+        const btn = document.getElementById('pt-' + t);
+        if (!btn) return;
+        if (t === type) {
+            btn.classList.add('border-accent-blue', 'bg-accent-blue/10');
+            btn.classList.remove('border-dark-600');
+        } else {
+            btn.classList.remove('border-accent-blue', 'bg-accent-blue/10');
+            btn.classList.add('border-dark-600');
+        }
+    });
+}
+
+function toggleProxyAuth() {
+    const show = document.getElementById('proxy-auth-toggle').checked;
+    document.getElementById('proxy-auth-fields').classList.toggle('hidden', !show);
+}
+
+function getProxyFormData() {
+    return {
+        enabled: proxyConfig.enabled,
+        type: proxyConfig.type,
+        host: document.getElementById('proxy-host').value.trim(),
+        port: parseInt(document.getElementById('proxy-port').value) || 0,
+        username: document.getElementById('proxy-username').value.trim(),
+        password: document.getElementById('proxy-password').value,
+    };
+}
+
+async function saveProxyConfig() {
+    const config = getProxyFormData();
+    try {
+        const resp = await fetch('/api/settings/proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            proxyConfig = config;
+            showToast(currentLang === 'zh' ? '代理配置已保存' : 'Proxy config saved', 'success');
+        } else {
+            showToast(data.message || (currentLang === 'zh' ? '保存失败' : 'Save failed'), 'error');
+        }
+    } catch (e) {
+        showToast(currentLang === 'zh' ? '保存失败: ' + e.message : 'Save failed: ' + e.message, 'error');
+    }
+}
+
+async function testProxyConnection() {
+    const config = getProxyFormData();
+    if (!config.host || !config.port) {
+        showToast(currentLang === 'zh' ? '请填写代理地址和端口' : 'Please enter proxy host and port', 'warning');
+        return;
+    }
+    const btn = document.getElementById('proxy-test-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>{{ i18n('proxy_testing') if i18n('proxy_testing') != 'proxy_testing' else ('测试中...' if lang == 'zh' else 'Testing...') }}';
+    try {
+        const resp = await fetch('/api/settings/proxy/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast(currentLang === 'zh' ? '✓ ' + data.message : '✓ ' + data.message, 'success', 5000);
+        } else {
+            showToast(currentLang === 'zh' ? '✗ ' + data.message : '✗ ' + data.message, 'error', 5000);
+        }
+    } catch (e) {
+        showToast(currentLang === 'zh' ? '测试失败: ' + e.message : 'Test failed: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plug mr-1.5"></i>{{ i18n('proxy_test') if i18n('proxy_test') != 'proxy_test' else ('测试连接' if lang == 'zh' else 'Test Connection') }}';
+    }
+}
+</script>
+
+<script>
+// ============================================================
+// 版本更新
+// ============================================================
+
+function initUpdateChecker() {
+    if (typeof window.electronAPI === 'undefined' || !window.electronAPI.onUpdateStatus) return;
+
+    // 显示当前版本
+    window.electronAPI.getAppInfo().then(info => {
+        if (info) {
+            document.getElementById('update-current-version').textContent = `v${info.version}`;
+        }
+    }).catch(() => {});
+
+    // 监听更新状态
+    window.electronAPI.onUpdateStatus((data) => {
+        handleUpdateStatus(data);
+    });
+}
+
+function handleUpdateStatus(data) {
+    const statusArea = document.getElementById('update-status-area');
+    const newVersion = document.getElementById('update-new-version');
+    const progress = document.getElementById('update-progress');
+    const checkBtn = document.getElementById('update-check-btn');
+    const downloadBtn = document.getElementById('update-download-btn');
+    const installBtn = document.getElementById('update-install-btn');
+
+    statusArea.textContent = data.message;
+
+    switch (data.status) {
+        case 'checking':
+            checkBtn.disabled = true;
+            checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> {{ i18n("update_checking") if i18n("update_checking") != "update_checking" else ("检查中..." if lang == "zh" else "Checking...") }}';
+            newVersion.classList.add('hidden');
+            progress.classList.add('hidden');
+            downloadBtn.classList.add('hidden');
+            installBtn.classList.add('hidden');
+            break;
+
+        case 'available':
+            checkBtn.disabled = false;
+            checkBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> {{ i18n("update_check") if i18n("update_check") != "update_check" else ("检查更新" if lang == "zh" else "Check for Updates") }}';
+            newVersion.classList.remove('hidden');
+            document.getElementById('update-version-text').textContent = `v${data.version}`;
+            document.getElementById('update-release-date').textContent = data.releaseDate || '';
+            const notes = data.releaseNotes;
+            document.getElementById('update-release-notes').innerHTML = typeof notes === 'string' ? notes.replace(/\n/g, '<br>') : '';
+            downloadBtn.classList.remove('hidden');
+            installBtn.classList.add('hidden');
+            break;
+
+        case 'not-available':
+            checkBtn.disabled = false;
+            checkBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> {{ i18n("update_check") if i18n("update_check") != "update_check" else ("检查更新" if lang == "zh" else "Check for Updates") }}';
+            newVersion.classList.add('hidden');
+            progress.classList.add('hidden');
+            downloadBtn.classList.add('hidden');
+            installBtn.classList.add('hidden');
+            break;
+
+        case 'downloading':
+            progress.classList.remove('hidden');
+            document.getElementById('update-progress-bar').style.width = data.percent + '%';
+            document.getElementById('update-progress-text').textContent = data.percent + '%';
+            document.getElementById('update-progress-detail').textContent = `${data.transferred} / ${data.total} (${data.speed})`;
+            downloadBtn.classList.add('hidden');
+            break;
+
+        case 'downloaded':
+            progress.classList.add('hidden');
+            installBtn.classList.remove('hidden');
+            downloadBtn.classList.add('hidden');
+            break;
+
+        case 'error':
+            checkBtn.disabled = false;
+            checkBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> {{ i18n("update_check") if i18n("update_check") != "update_check" else ("检查更新" if lang == "zh" else "Check for Updates") }}';
+            newVersion.classList.add('hidden');
+            progress.classList.add('hidden');
+            break;
+    }
+}
+
+async function manualCheckUpdate() {
+    if (typeof window.electronAPI === 'undefined' || !window.electronAPI.checkForUpdate) {
+        // 非 Electron 环境，提示用户
+        const statusArea = document.getElementById('update-status-area');
+        if (statusArea) {
+            statusArea.textContent = '{{ i18n("update_electron_only") if i18n("update_electron_only") != "update_electron_only" else ("此功能仅支持桌面客户端使用" if lang == "zh" else "This feature is only available in the desktop app") }}';
+            statusArea.style.color = '#f59e0b';
+        }
+        return;
+    }
+    await window.electronAPI.checkForUpdate();
+}
+
+async function downloadUpdate() {
+    if (typeof window.electronAPI !== 'undefined' && window.electronAPI.downloadUpdate) {
+        await window.electronAPI.downloadUpdate();
+    }
+}
+
+async function installUpdate() {
+    if (typeof window.electronAPI !== 'undefined' && window.electronAPI.installUpdate) {
+        await window.electronAPI.installUpdate();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initUpdateChecker);
+</script>
+{% endblock %}

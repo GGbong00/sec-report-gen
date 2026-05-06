@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>安全测试报告 - api-test</title>
+<style>
+  /* ============================================================
+     CSS Variables / CSS 变量
+     ============================================================ */
+  :root {
+    --primary: #1A237E;
+    --primary-light: #283593;
+    --primary-dark: #0D1642;
+    --bg: #F5F7FA;
+    --card-bg: #FFFFFF;
+    --text: #333333;
+    --text-light: #666666;
+    --border: #E0E0E0;
+    --critical: #DC3545;
+    --high: #FD7E14;
+    --medium: #FFC107;
+    --low: #0D6EFD;
+    --info: #6C757D;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
+    --radius: 8px;
+  }
+
+  /* ============================================================
+     Reset & Base / 重置与基础
+     ============================================================ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+                 "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ============================================================
+     PDF Page Settings / PDF 页面设置
+     ============================================================ */
+  
+
+  /* ============================================================
+     Navigation Bar / 导航栏 (HTML only)
+     ============================================================ */
+  
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: #fff;
+    padding: 0 30px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  .navbar-brand {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .navbar-nav {
+    display: flex;
+    gap: 5px;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+  .navbar-nav a {
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .navbar-nav a:hover,
+  .navbar-nav a.active {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  .main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 20px 40px;
+  }
+  
+
+  /* ============================================================
+     Cover Section / 封面区域
+     ============================================================ */
+  
+  .cover-section {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, #3949AB 100%);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 60px 40px;
+    margin-bottom: 30px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .cover-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+  }
+  .cover-info {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 30px;
+    position: relative;
+  }
+  .cover-info-item { text-align: center; }
+  .cover-info-label {
+    font-size: 12px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .cover-info-value { font-size: 16px; font-weight: 600; }
+  
+
+  .cover-title {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .cover-subtitle {
+    font-size: 16px;
+    opacity: 0.8;
+    margin-bottom: 30px;
+  }
+  .cover-divider {
+    width: 80px;
+    height: 3px;
+    background: rgba(255,255,255,0.5);
+    margin: 0 auto 30px;
+    border-radius: 2px;
+  }
+
+  /* ============================================================
+     Table of Contents / 目录页 (PDF only)
+     ============================================================ */
+  
+
+  /* ============================================================
+     Section Cards / 章节卡片
+     ============================================================ */
+  
+  .section-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.3s;
+  }
+  .section-card:hover { box-shadow: var(--shadow-hover); }
+  
+
+  .section-title {
+    font-size: 22px;
+    color: var(--primary);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    
+  }
+  .section-title:first-of-type {  }
+
+  
+  .section-title .icon {
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  
+
+  .sub-title {
+    font-size: 16px;
+    color: var(--primary-light);
+    margin: 18px 0 10px;
+    font-weight: 600;
+    
+  }
+
+  /* ============================================================
+     Tables / 表格
+     ============================================================ */
+  .table-responsive {
+    overflow-x: auto;
+    margin: 15px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    
+  }
+  th {
+    background: var(--primary);
+    color: #fff;
+    padding: 12px 15px;
+    text-align: center;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid var(--primary);
+    
+  }
+  td {
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    
+  }
+  tr:hover td { background-color: #F0F2FF; }
+  tr:nth-child(even) td { background-color: #FAFBFF; }
+  tr:nth-child(even):hover td { background-color: #E8EBFF; }
+
+  /* ============================================================
+     Risk Badges / 风险等级标签
+     ============================================================ */
+  .risk-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    
+  }
+  .risk-critical { background-color: var(--critical); }
+  .risk-high { background-color: var(--high); }
+  .risk-medium { background-color: var(--medium); color: #333; }
+  .risk-low { background-color: var(--low); }
+  .risk-info { background-color: var(--info); }
+
+  /* ============================================================
+     Statistics Cards & Charts / 统计卡片与图表
+     ============================================================ */
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border-top: 4px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+  }
+  .stat-card.critical { border-top-color: var(--critical); }
+  .stat-card.high { border-top-color: var(--high); }
+  .stat-card.medium { border-top-color: var(--medium); }
+  .stat-card.low { border-top-color: var(--low); }
+  .stat-card.info { border-top-color: var(--info); }
+  .stat-card.total { border-top-color: var(--primary); }
+  .stat-number { font-size: 32px; font-weight: 700; margin: 5px 0; }
+  .stat-label { font-size: 13px; color: var(--text-light); }
+  
+
+  /* Bar Chart / 柱状图 */
+  
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 20px;
+    height: 200px;
+    padding: 20px 0;
+    margin: 20px 0;
+    border-bottom: 2px solid var(--border);
+  }
+  .bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    max-width: 100px;
+  }
+  .bar {
+    width: 50px;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.5s ease;
+    min-height: 4px;
+    position: relative;
+  }
+  .bar-value {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .bar-label {
+    font-size: 12px;
+    color: var(--text-light);
+    text-align: center;
+    white-space: nowrap;
+  }
+  
+
+  /* ============================================================
+     Vulnerability Cards / 漏洞详情卡片
+     ============================================================ */
+  
+  .vuln-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    margin: 15px 0;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border-left: 4px solid var(--border);
+    transition: box-shadow 0.2s;
+  }
+  .vuln-card:hover { box-shadow: var(--shadow-hover); }
+  
+
+  .vuln-card.critical { border-left-color: var(--critical); }
+  .vuln-card.high { border-left-color: var(--high); }
+  .vuln-card.medium { border-left-color: var(--medium); }
+  .vuln-card.low { border-left-color: var(--low); }
+  .vuln-card.info { border-left-color: var(--info); }
+
+  .vuln-card-header {
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    
+  }
+  .vuln-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .vuln-card-body {
+    padding: 15px 20px;
+    
+  }
+
+  
+  .vuln-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .vuln-meta-item { font-size: 13px; }
+  .vuln-meta-label { color: var(--text-light); margin-right: 6px; }
+  
+
+  .vuln-section { margin: 12px 0; }
+  .vuln-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-light);
+    margin-bottom: 6px;
+    
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+  }
+  
+  .vuln-section-title::before {
+    content: '';
+    width: 3px;
+    height: 14px;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+  
+  .vuln-section-content {
+    font-size: 13px;
+    color: var(--text-light);
+    padding-left: 12px;
+    line-height: 1.8;
+    
+  }
+  .vuln-steps {
+    padding-left: 20px;
+    font-size: 13px;
+    color: var(--text-light);
+  }
+  .vuln-steps li {
+    margin: 4px 0;
+    line-height: 1.6;
+  }
+
+  /* ============================================================
+     Overall Risk / 整体风险
+     ============================================================ */
+  
+  .overall-risk {
+    text-align: center;
+    padding: 30px;
+    margin: 20px 0;
+    background: linear-gradient(135deg, #F5F7FA, #E8EAF6);
+    border-radius: var(--radius);
+  }
+  .overall-risk-label {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 10px;
+  }
+  .overall-risk-value { font-size: 36px; font-weight: 700; }
+  
+
+  /* ============================================================
+     Priority Items / 优先级条目
+     ============================================================ */
+  
+  .priority-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    margin: 10px 0;
+    background: #FAFBFF;
+    border-radius: 6px;
+    border-left: 4px solid var(--border);
+  }
+  .priority-item.p1 { border-left-color: var(--critical); }
+  .priority-item.p2 { border-left-color: var(--high); }
+  .priority-item.p3 { border-left-color: var(--medium); }
+  .priority-item.p4 { border-left-color: var(--low); }
+  .priority-badge {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .priority-detail { flex: 1; }
+  .priority-level { font-weight: 600; font-size: 14px; }
+  .priority-desc { font-size: 13px; color: var(--text-light); margin-top: 2px; }
+  .priority-count {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  
+
+  /* ============================================================
+     Footer / 页脚
+     ============================================================ */
+  
+  .footer {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-light);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 30px;
+  }
+  
+
+  /* ============================================================
+     Responsive Design / 响应式设计
+     ============================================================ */
+  
+  @media (max-width: 768px) {
+    .navbar { padding: 0 15px; height: auto; min-height: 60px; flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; }
+    .navbar-nav { gap: 2px; }
+    .navbar-nav a { padding: 6px 10px; font-size: 12px; }
+    .cover-section { padding: 40px 20px; }
+    .cover-title { font-size: 24px; }
+    .cover-info { gap: 15px; }
+    .section-card { padding: 20px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .bar-chart { gap: 10px; height: 150px; }
+    .bar { width: 35px; }
+    .vuln-meta { grid-template-columns: 1fr; }
+    .main-content { padding: 70px 10px 20px; }
+  }
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .cover-info { flex-direction: column; gap: 10px; }
+  }
+  @media print {
+    .navbar { display: none; }
+    .main-content { padding-top: 0; }
+    .section-card { break-inside: avoid; box-shadow: none; border: 1px solid var(--border); }
+    .vuln-card { break-inside: avoid; box-shadow: none; border: 1px solid var(--border); }
+  }
+  
+</style>
+</head>
+<body>
+
+
+<!-- ============================================================
+     Navigation Bar / 导航栏
+     ============================================================ -->
+<nav class="navbar">
+  <div class="navbar-brand">安全测试报告</div>
+  <ul class="navbar-nav">
+    <li><a href="#home">首页</a></li>
+    <li><a href="#overview">项目概述</a></li>
+    <li><a href="#statistics">风险统计</a></li>
+    <li><a href="#details">漏洞详情</a></li>
+    <li><a href="#assessment">风险评估</a></li>
+    <li><a href="#priority">修复建议</a></li>
+  </ul>
+</nav>
+
+
+<div class="main-content">
+
+<!-- ============================================================
+     Cover Page / 封面页
+     ============================================================ -->
+
+<section id="home" class="cover-section">
+  <div class="cover-title">安全测试报告</div>
+  <div class="cover-subtitle">Security Assessment Report</div>
+  <div class="cover-divider"></div>
+  <div class="cover-info">
+    <div class="cover-info-item">
+      <div class="cover-info-label">项目名称</div>
+      <div class="cover-info-value">api-test</div>
+    </div>
+    <div class="cover-info-item">
+      <div class="cover-info-label">客户名称</div>
+      <div class="cover-info-value"></div>
+    </div>
+    <div class="cover-info-item">
+      <div class="cover-info-label">测试人员</div>
+      <div class="cover-info-value"></div>
+    </div>
+    <div class="cover-info-item">
+      <div class="cover-info-label">报告日期</div>
+      <div class="cover-info-value">2026-04-15</div>
+    </div>
+    <div class="cover-info-item">
+      <div class="cover-info-label">密级标识</div>
+      <div class="cover-info-value"></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     Chapter 1: Project Overview / 第一章：项目概述
+     ============================================================ -->
+
+<section id="overview" class="section-card">
+  <h2 class="section-title"><span class="icon">1</span> 第一章 项目概述</h2>
+
+
+<h3 class="sub-title">测试目标</h3>
+<p>本次安全测试旨在全面评估目标系统的安全状况，发现潜在的安全漏洞和风险点，为系统的安全加固提供依据。</p>
+
+<h3 class="sub-title">测试范围</h3>
+
+<p></p>
+
+
+<h3 class="sub-title">测试方法</h3>
+
+<p></p>
+
+
+<h3 class="sub-title">测试工具</h3>
+
+<p></p>
+
+
+
+</section>
+
+
+<!-- ============================================================
+     Chapter 2: Risk Statistics / 第二章：风险统计概览
+     ============================================================ -->
+
+<section id="statistics" class="section-card">
+  <h2 class="section-title"><span class="icon">2</span> 第二章 风险统计概览</h2>
+
+
+<p>本次安全测试共发现以下安全漏洞：</p>
+
+
+<!-- Statistics Cards / 统计卡片 -->
+<div class="stats-grid">
+  <div class="stat-card total">
+    <div class="stat-label">漏洞总数</div>
+    <div class="stat-number" style="color: var(--primary);">1</div>
+  </div>
+  <div class="stat-card critical">
+    <div class="stat-label">严重</div>
+    <div class="stat-number" style="color: var(--critical);">0</div>
+  </div>
+  <div class="stat-card high">
+    <div class="stat-label">高危</div>
+    <div class="stat-number" style="color: var(--high);">0</div>
+  </div>
+  <div class="stat-card medium">
+    <div class="stat-label">中危</div>
+    <div class="stat-number" style="color: #E6A800;">1</div>
+  </div>
+  <div class="stat-card low">
+    <div class="stat-label">低危</div>
+    <div class="stat-number" style="color: var(--low);">0</div>
+  </div>
+  <div class="stat-card info">
+    <div class="stat-label">信息</div>
+    <div class="stat-number" style="color: var(--info);">0</div>
+  </div>
+</div>
+
+
+<!-- Bar Chart / 柱状图 -->
+
+
+<h3 class="sub-title">第二章 风险统计概览</h3>
+<div class="bar-chart">
+  <div class="bar-item">
+    <div class="bar" style="height: 0px; background-color: var(--critical);">
+      <span class="bar-value">0</span>
+    </div>
+    <span class="bar-label">严重</span>
+  </div>
+  <div class="bar-item">
+    <div class="bar" style="height: 0px; background-color: var(--high);">
+      <span class="bar-value">0</span>
+    </div>
+    <span class="bar-label">高危</span>
+  </div>
+  <div class="bar-item">
+    <div class="bar" style="height: 160px; background-color: var(--medium);">
+      <span class="bar-value">1</span>
+    </div>
+    <span class="bar-label">中危</span>
+  </div>
+  <div class="bar-item">
+    <div class="bar" style="height: 0px; background-color: var(--low);">
+      <span class="bar-value">0</span>
+    </div>
+    <span class="bar-label">低危</span>
+  </div>
+  <div class="bar-item">
+    <div class="bar" style="height: 0px; background-color: var(--info);">
+      <span class="bar-value">0</span>
+    </div>
+    <span class="bar-label">信息</span>
+  </div>
+</div>
+
+
+<!-- Statistics Table / 统计表 -->
+<div class="table-responsive">
+<table>
+  <thead>
+    <tr>
+      <th>风险等级</th>
+      <th>数量</th>
+      <th>占比</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td><span class="risk-badge risk-critical">严重</span></td>
+      <td>0</td>
+      <td>0.0%</td>
+    </tr>
+    
+    <tr>
+      <td><span class="risk-badge risk-high">高危</span></td>
+      <td>0</td>
+      <td>0.0%</td>
+    </tr>
+    
+    <tr>
+      <td><span class="risk-badge risk-medium">中危</span></td>
+      <td>1</td>
+      <td>100.0%</td>
+    </tr>
+    
+    <tr>
+      <td><span class="risk-badge risk-low">低危</span></td>
+      <td>0</td>
+      <td>0.0%</td>
+    </tr>
+    
+    <tr>
+      <td><span class="risk-badge risk-info">信息</span></td>
+      <td>0</td>
+      <td>0.0%</td>
+    </tr>
+    
+    <tr style="background-color: #E8EAF6; font-weight: bold;">
+      <td>漏洞总数</td>
+      <td>1</td>
+      <td>100.0%</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+</section>
+
+
+<!-- ============================================================
+     Chapter 3: Vulnerability Details / 第三章：漏洞详情
+     ============================================================ -->
+
+<section id="details" class="section-card">
+  <h2 class="section-title"><span class="icon">3</span> 第三章 漏洞详情</h2>
+
+
+
+
+
+
+<div class="vuln-card medium">
+  <div class="vuln-card-header">
+    <div class="vuln-card-title">1. Ghost 44.1.8 反射型跨站脚本攻击（XSS）</div>
+    <span class="risk-badge risk-medium">中危</span>
+  </div>
+  <div class="vuln-card-body">
+
+    
+    <div class="vuln-meta">
+      <div class="vuln-meta-item"><span class="vuln-meta-label">CVE编号:</span></div>
+      <div class="vuln-meta-item"><span class="vuln-meta-label">受影响目标:</span>example.com</div>
+      <div class="vuln-meta-item"><span class="vuln-meta-label">端口:</span></div>
+      <div class="vuln-meta-item"><span class="vuln-meta-label">协议:</span></div>
+      <div class="vuln-meta-item"><span class="vuln-meta-label">来源扫描器:</span>Burp Suite</div>
+    </div>
+    
+
+    <div class="vuln-section">
+      <div class="vuln-section-title">漏洞描述</div>
+      <div class="vuln-section-content">Ghost版本44.1.8中存在反射型跨站脚本（XSS）漏洞。Blogging Platform组件在将用户输入回显到HTTP响应中之前未正确编码。攻击者可以构造包含JavaScript代码的恶意URL，当受害者点击该链接时，注入的脚本将在受害者的浏览器会话上下文中执行。这允许攻击者窃取会话Cookie、将用户重定向到恶意网站或代表已认证用户执行操作。</div>
+    </div>
+
+    <div class="vuln-section">
+      <div class="vuln-section-title">影响分析</div>
+      <div class="vuln-section-content"></div>
+    </div>
+
+    
+
+    <div class="vuln-section">
+      <div class="vuln-section-title">修复建议</div>
+      <div class="vuln-section-content"></div>
+    </div>
+
+  </div>
+</div>
+
+
+
+</section>
+
+
+<!-- ============================================================
+     Chapter 4: Risk Assessment / 第四章：综合风险评估
+     ============================================================ -->
+
+<section id="assessment" class="section-card">
+  <h2 class="section-title"><span class="icon">4</span> 第四章 综合风险评估</h2>
+
+
+
+<div class="overall-risk">
+  <div class="overall-risk-label">整体风险等级</div>
+  <div class="overall-risk-value">
+    <span class="risk-badge risk-medium" style="font-size: 24px; padding: 8px 24px;">
+      中危
+    </span>
+  </div>
+</div>
+
+
+<h3 class="sub-title">风险概述</h3>
+<p>根据本次安全测试的结果，对目标系统的整体安全风险进行综合评估。评估综合考虑了漏洞数量、严重程度、影响范围等因素。</p>
+
+
+
+
+
+
+
+
+<div style="margin: 12px 0; padding: 12px; background: #FAFBFF; border-radius: 6px; border-left: 3px solid var(--medium);">
+  <strong><span class="risk-badge risk-medium">中危</span> (1)</strong>
+  <p style="margin-top: 6px; font-size: 13px; color: var(--text-light);">系统存在中危级别的安全漏洞，可能被利用造成一定安全影响，建议在合理时间内修复。</p>
+</div>
+
+
+
+
+
+
+
+
+<h3 class="sub-title">综合建议</h3>
+<p>建议按照修复优先级建议章节中的排序，优先处理严重和高危漏洞，逐步完善系统的安全防护体系。</p>
+
+
+</section>
+
+
+<!-- ============================================================
+     Chapter 5: Remediation Priority / 第五章：修复优先级建议
+     ============================================================ -->
+
+<section id="priority" class="section-card">
+  <h2 class="section-title"><span class="icon">5</span> 第五章 修复优先级建议</h2>
+
+
+<p>根据漏洞的风险等级和实际影响，建议按照以下优先级进行修复：</p>
+
+
+<div class="priority-item p1">
+  <span class="priority-badge" style="background-color: var(--critical);">P1 - 立即修复</span>
+  <div class="priority-detail">
+    <div class="priority-level">严重</div>
+    <div class="priority-desc">严重漏洞需在24小时内完成修复或采取临时缓解措施</div>
+  </div>
+  <div class="priority-count">0</div>
+</div>
+<div class="priority-item p2">
+  <span class="priority-badge" style="background-color: var(--high);">P2 - 尽快修复</span>
+  <div class="priority-detail">
+    <div class="priority-level">高危</div>
+    <div class="priority-desc">高危漏洞需在7个工作日内完成修复</div>
+  </div>
+  <div class="priority-count">0</div>
+</div>
+<div class="priority-item p3">
+  <span class="priority-badge" style="background-color: var(--medium); color: #333;">P3 - 计划修复</span>
+  <div class="priority-detail">
+    <div class="priority-level">中危</div>
+    <div class="priority-desc">中危漏洞需在30个工作日内完成修复</div>
+  </div>
+  <div class="priority-count">1</div>
+</div>
+<div class="priority-item p4">
+  <span class="priority-badge" style="background-color: var(--low);">P4 - 建议修复</span>
+  <div class="priority-detail">
+    <div class="priority-level">低危 / 信息</div>
+    <div class="priority-desc">低危及信息级漏洞建议在下次版本更新时修复</div>
+  </div>
+  <div class="priority-count">0</div>
+</div>
+
+
+
+</section>
+
+
+<!-- ============================================================
+     Appendix: Vulnerability Summary / 附录：漏洞统计汇总表
+     ============================================================ -->
+
+<section class="section-card">
+  <h2 class="section-title"><span class="icon">A</span> 附录 漏洞统计汇总表</h2>
+
+
+
+<div class="table-responsive">
+<table>
+  <thead>
+    <tr>
+      <th>序号</th>
+      <th>CVE编号</th>
+      <th>漏洞名称</th>
+      <th>风险等级</th>
+      <th>受影响目标</th>
+      <th>端口</th>
+      <th>协议</th>
+      <th>来源</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    
+    <tr>
+      <td>1</td>
+      <td></td>
+      <td style="text-align: left;">Ghost 44.1.8 反射型跨站脚本攻击（XSS）</td>
+      <td><span class="risk-badge risk-medium">中危</span></td>
+      <td>example.com</td>
+      <td></td>
+      <td></td>
+      <td>Burp Suite</td>
+    </tr>
+    
+  </tbody>
+</table>
+</div>
+
+
+
+</section>
+
+
+<!-- ============================================================
+     Footer / 页脚
+     ============================================================ -->
+
+<div class="footer">
+  报告由安全测试系统自动生成 | 2026-04-15
+</div>
+
+
+</div>
+
+
+<script>
+// Navigation scroll highlight / 导航栏滚动高亮
+(function() {
+  var sections = document.querySelectorAll('section[id]');
+  var navLinks = document.querySelectorAll('.navbar-nav a');
+
+  function highlightNav() {
+    var scrollPos = window.scrollY + 100;
+    sections.forEach(function(section) {
+      var top = section.offsetTop;
+      var height = section.offsetHeight;
+      var id = section.getAttribute('id');
+      if (scrollPos >= top && scrollPos < top + height) {
+        navLinks.forEach(function(link) {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + id) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  }
+
+  window.addEventListener('scroll', highlightNav);
+  highlightNav();
+
+  // Smooth scroll / 平滑滚动
+  navLinks.forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+})();
+</script>
+
+
+</body>
+</html>

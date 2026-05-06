@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sV -sC -oX sample_nmap.xml 192.168.1.0/24" start="1713000000" startstr="Sun Apr 13 2026" version="7.94" xmloutputversion="1.05">
+  <host starttime="1713000001" endtime="1713000010">
+    <status state="up" reason="syn-ack"/>
+    <address addr="192.168.1.100" addrtype="ipv4"/>
+    <hostnames><hostname name="webserver.example.com" type="PTR"/></hostnames>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open" reason="syn-ack"/>
+        <service name="ssh" product="OpenSSH" version="8.9p1" extrainfo="Ubuntu"/>
+      </port>
+      <port protocol="tcp" portid="80">
+        <state state="open" reason="syn-ack"/>
+        <service name="http" product="Apache httpd" version="2.4.41"/>
+        <script id="http-vuln-cve2017-5638" output="VULNERABLE: Apache Struts2 REST Plugin XStream RCE (CVE-2017-5638)"/>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open" reason="syn-ack"/>
+        <service name="https" product="nginx" version="1.18.0"/>
+        <script id="ssl-heartbleed" output="VULNERABLE: The Heartbleed Bug is a vulnerability in OpenSSL (CVE-2014-0160)"/>
+      </port>
+      <port protocol="tcp" portid="3306">
+        <state state="open" reason="syn-ack"/>
+        <service name="mysql" product="MySQL" version="5.7.32"/>
+      </port>
+      <port protocol="tcp" portid="8080">
+        <state state="open" reason="syn-ack"/>
+        <service name="http-proxy" product="Apache Tomcat" version="9.0.30"/>
+        <script id="http-vuln-cve2020-1938" output="VULNERABLE: Apache Tomcat AJP Ghostcat File Read/Include (CVE-2020-1938)"/>
+      </port>
+    </ports>
+    <os><osmatch name="Linux 5.4" accuracy="98"/></os>
+  </host>
+  <host starttime="1713000011" endtime="1713000020">
+    <status state="up" reason="syn-ack"/>
+    <address addr="192.168.1.101" addrtype="ipv4"/>
+    <hostnames><hostname name="dbserver.example.com" type="PTR"/></hostnames>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open" reason="syn-ack"/>
+        <service name="ssh" product="OpenSSH" version="7.4"/>
+      </port>
+      <port protocol="tcp" portid="3306">
+        <state state="open" reason="syn-ack"/>
+        <service name="mysql" product="MySQL" version="8.0.28"/>
+      </port>
+      <port protocol="tcp" portid="6379">
+        <state state="open" reason="syn-ack"/>
+        <service name="redis" product="Redis" version="6.2.6" extrainfo="unauthorized access"/>
+      </port>
+    </ports>
+  </host>
+  <host starttime="1713000021" endtime="1713000030">
+    <status state="up" reason="syn-ack"/>
+    <address addr="192.168.1.102" addrtype="ipv4"/>
+    <hostnames><hostname name="mailserver.example.com" type="PTR"/></hostnames>
+    <ports>
+      <port protocol="tcp" portid="25">
+        <state state="open" reason="syn-ack"/>
+        <service name="smtp" product="Postfix smtpd"/>
+      </port>
+      <port protocol="tcp" portid="110">
+        <state state="open" reason="syn-ack"/>
+        <service name="pop3" product="Dovecot pop3d"/>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="filtered" reason="no-response"/>
+        <service name="https"/>
+      </port>
+    </ports>
+  </host>
+</nmaprun>

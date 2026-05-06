@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OWASPZAPReport version="2.12.0" generated="Sat, 13 Apr 2026">
+  <site name="http://192.168.1.100" host="192.168.1.100" port="80" ssl="false">
+    <alerts>
+      <alert>
+        <pluginid>40012</pluginid>
+        <alert>SQL Injection</alert>
+        <name>SQL Injection</name>
+        <riskcode>3</riskcode>
+        <confidence>2</confidence>
+        <riskdesc>High</riskdesc>
+        <confidencedesc>Medium</confidencedesc>
+        <desc>A SQL injection vulnerability was found.</desc>
+        <url>http://192.168.1.100/login</url>
+        <param>username</param>
+        <attack>admin' OR 1=1--</attack>
+        <evidence>Warning: mysql_fetch_array()</evidence>
+        <solution>Use parameterized queries.</solution>
+        <reference>https://owasp.org/www-community/attacks/SQL_Injection</reference>
+        <cweid>89</cweid>
+        <wascid>19</wascid>
+      </alert>
+      <alert>
+        <pluginid>40018</pluginid>
+        <alert>Cross Site Scripting (Reflected)</alert>
+        <name>Cross Site Scripting (Reflected)</name>
+        <riskcode>2</riskcode>
+        <confidence>2</confidence>
+        <riskdesc>Medium</riskdesc>
+        <confidencedesc>Medium</confidencedesc>
+        <desc>A reflected XSS vulnerability was found.</desc>
+        <url>http://192.168.1.100/search?q=test</url>
+        <param>q</param>
+        <attack>&lt;script&gt;alert(1)&lt;/script&gt;</attack>
+        <evidence>&lt;script&gt;alert(1)&lt;/script&gt;</evidence>
+        <solution>Encode output and implement CSP.</solution>
+        <cweid>79</cweid>
+      </alert>
+      <alert>
+        <pluginid>10038</pluginid>
+        <alert>Content Security Policy (CSP) Header Not Set</alert>
+        <name>Content Security Policy (CSP) Header Not Set</name>
+        <riskcode>1</riskcode>
+        <confidence>2</confidence>
+        <riskdesc>Low</riskdesc>
+        <desc>CSP header is not set.</desc>
+        <url>http://192.168.1.100</url>
+        <solution>Set Content-Security-Policy header.</solution>
+      </alert>
+      <alert>
+        <pluginid>10021</pluginid>
+        <alert>X-Content-Type-Options Header Missing</alert>
+        <name>X-Content-Type-Options Header Missing</name>
+        <riskcode>0</riskcode>
+        <confidence>2</confidence>
+        <riskdesc>Informational</riskdesc>
+        <desc>X-Content-Type-Options header is missing.</desc>
+        <url>http://192.168.1.100</url>
+        <solution>Add X-Content-Type-Options: nosniff header.</solution>
+      </alert>
+    </alerts>
+  </site>
+</OWASPZAPReport>

@@ -1,0 +1,45 @@
+{
+  "vulns": [
+    {
+      "vuln_class": "sqli",
+      "target_url": "http://192.168.1.100/login",
+      "specific_url": "http://192.168.1.100/login?username=admin",
+      "severity": "high",
+      "transport": "http",
+      "plugin": "sql-injection",
+      "detail": {
+        "param": "username",
+        "payload": "admin' OR 1=1--",
+        "type": "boolean-based blind",
+        "dbms": "MySQL",
+        "evidence": "Warning: mysql_fetch_array() expects parameter"
+      }
+    },
+    {
+      "vuln_class": "xss",
+      "target_url": "http://192.168.1.100/search",
+      "specific_url": "http://192.168.1.100/search?q=<script>alert(1)</script>",
+      "severity": "medium",
+      "transport": "http",
+      "plugin": "reflected-xss",
+      "detail": {
+        "param": "q",
+        "payload": "<script>alert(1)</script>",
+        "evidence": "<script>alert(1)</script>"
+      }
+    },
+    {
+      "vuln_class": "ssrf",
+      "target_url": "http://192.168.1.100/api/fetch",
+      "specific_url": "http://192.168.1.100/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+      "severity": "high",
+      "transport": "http",
+      "plugin": "ssrf",
+      "detail": {
+        "param": "url",
+        "payload": "http://169.254.169.254/latest/meta-data/",
+        "evidence": "ami-id"
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "site": [
+    {
+      "@name": "http://192.168.1.100",
+      "@host": "192.168.1.100",
+      "@port": "80",
+      "@ssl": "false",
+      "alerts": [
+        {
+          "pluginid": "40012",
+          "alert": "SQL Injection",
+          "name": "SQL Injection",
+          "riskcode": "3",
+          "confidence": "2",
+          "riskdesc": "High",
+          "desc": "A SQL injection vulnerability was found in the login page.",
+          "url": "http://192.168.1.100/login",
+          "param": "username",
+          "solution": "Use parameterized queries.",
+          "cweid": "89",
+          "wascid": "19"
+        },
+        {
+          "pluginid": "40018",
+          "alert": "Cross Site Scripting (Reflected)",
+          "name": "Cross Site Scripting (Reflected)",
+          "riskcode": "2",
+          "confidence": "2",
+          "riskdesc": "Medium",
+          "desc": "A reflected XSS vulnerability was found.",
+          "url": "http://192.168.1.100/search",
+          "param": "q",
+          "solution": "Encode output."
+        }
+      ]
+    }
+  ]
+}

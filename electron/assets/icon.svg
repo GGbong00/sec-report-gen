@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a1628"/>
+      <stop offset="100%" style="stop-color:#1a1f3a"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="chrome" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e2e8f0"/>
+      <stop offset="100%" style="stop-color:#94a3b8"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="48" fill="url(#bg)"/>
+  <!-- Orbital ring -->
+  <ellipse cx="128" cy="128" rx="110" ry="40" fill="none" stroke="#3b82f6" stroke-width="1.5" opacity="0.3" transform="rotate(-20 128 128)"/>
+  <!-- Shield outer (chrome border) -->
+  <path d="M128 32 L204 70 L204 140 C204 182 170 218 128 234 C86 218 52 182 52 140 L52 70 Z" fill="url(#chrome)" opacity="0.9"/>
+  <!-- Shield inner -->
+  <path d="M128 42 L194 76 L194 140 C194 176 164 208 128 222 C92 208 62 176 62 140 L62 76 Z" fill="url(#bg)" opacity="0.8"/>
+  <path d="M128 48 L188 80 L188 140 C188 172 160 200 128 214 C96 200 68 172 68 140 L68 80 Z" fill="url(#shield)" opacity="0.15"/>
+  <!-- Document -->
+  <rect x="96" y="80" width="64" height="80" rx="4" fill="white" opacity="0.95"/>
+  <path d="M144 80 L160 96 L144 96 Z" fill="#cbd5e1"/>
+  <line x1="108" y1="108" x2="148" y2="108" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+  <line x1="108" y1="120" x2="140" y2="120" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+  <line x1="108" y1="132" x2="144" y2="132" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+  <!-- Green checkmark -->
+  <path d="M108 148 L122 162 L152 132" fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  <!-- Floating particles -->
+  <circle cx="50" cy="60" r="3" fill="#60a5fa" opacity="0.6"/>
+  <circle cx="210" cy="50" r="2" fill="#3b82f6" opacity="0.5"/>
+  <circle cx="40" cy="190" r="2.5" fill="#60a5fa" opacity="0.4"/>
+  <circle cx="220" cy="200" r="3" fill="#3b82f6" opacity="0.5"/>
+</svg>

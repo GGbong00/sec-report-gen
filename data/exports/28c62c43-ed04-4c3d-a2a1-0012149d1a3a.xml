@@ -1,0 +1,134 @@
+<?xml version="1.0" ?>
+<SecReport lang="zh" version="1.0">
+  <ProjectInfo>
+    <Name>api-test</Name>
+    <Client/>
+    <Tester/>
+    <Date>2026-04-15</Date>
+    <Classification/>
+    <Version>1.0</Version>
+    <Scope>
+      <Item/>
+    </Scope>
+    <Methodology>
+      <Item/>
+    </Methodology>
+    <Tools>
+      <Tool/>
+    </Tools>
+  </ProjectInfo>
+  <Vulnerabilities total="7">
+    <Vulnerability id="0001">
+      <CVE_ID/>
+      <Name>test</Name>
+      <RiskLevel>high</RiskLevel>
+      <RiskLevelText>高危</RiskLevelText>
+      <Target/>
+      <Port/>
+      <Protocol/>
+      <Description/>
+      <Impact/>
+      <Remediation/>
+      <Source>manual</Source>
+      <ReproduceSteps>
+        <Step order="1"/>
+      </ReproduceSteps>
+    </Vulnerability>
+    <Vulnerability id="0002">
+      <CVE_ID/>
+      <Name>测试漏洞</Name>
+      <RiskLevel>high</RiskLevel>
+      <RiskLevelText>高危</RiskLevelText>
+      <Target>192.168.1.1</Target>
+      <Port>8080</Port>
+      <Protocol/>
+      <Description/>
+      <Impact/>
+      <Remediation/>
+      <Source>manual</Source>
+      <ReproduceSteps>
+        <Step order="1"/>
+      </ReproduceSteps>
+    </Vulnerability>
+    <Vulnerability id="0003">
+      <CVE_ID/>
+      <Name>测试漏洞</Name>
+      <RiskLevel>high</RiskLevel>
+      <RiskLevelText>高危</RiskLevelText>
+      <Target>192.168.1.1</Target>
+      <Port>8080</Port>
+      <Protocol/>
+      <Description>这是一个测试漏洞</Description>
+      <Impact/>
+      <Remediation/>
+      <Source>manual</Source>
+      <ReproduceSteps>
+        <Step order="1"/>
+      </ReproduceSteps>
+    </Vulnerability>
+    <Vulnerability id="0004">
+      <CVE_ID/>
+      <Name>api-test-vuln</Name>
+      <RiskLevel>high</RiskLevel>
+      <RiskLevelText>高危</RiskLevelText>
+      <Target>10.0.0.1</Target>
+      <Port>80</Port>
+      <Protocol/>
+      <Description>test from api</Description>
+      <Impact/>
+      <Remediation/>
+      <Source>manual</Source>
+      <ReproduceSteps>
+        <Step order="1"/>
+      </ReproduceSteps>
+    </Vulnerability>
+    <Vulnerability id="0005">
+      <CVE_ID/>
+      <Name>test</Name>
+      <RiskLevel>high</RiskLevel>
+      <RiskLevelText>高危</RiskLevelText>
+      <Target>10.0.0.1</Target>
+      <Port>80</Port>
+      <Protocol/>
+      <Description>test</Description>
+      <Impact/>
+      <Remediation/>
+      <Source>manual</Source>
+      <ReproduceSteps>
+        <Step order="1"/>
+      </ReproduceSteps>
+    </Vulnerability>
+    <Vulnerability id="0006">
+      <CVE_ID/>
+      <Name>Ghost 44.1.8 反射型跨站脚本攻击（XSS）</Name>
+      <RiskLevel>medium</RiskLevel>
+      <RiskLevelText>中危</RiskLevelText>
+      <Target>example.com</Target>
+      <Port/>
+      <Protocol/>
+      <Description>Ghost版本44.1.8中存在反射型跨站脚本（XSS）漏洞。Blogging Platform组件在将用户输入回显到HTTP响应中之前未正确编码。攻击者可以构造包含JavaScript代码的恶意URL，当受害者点击该链接时，注入的脚本将在受害者的浏览器会话上下文中执行。这允许攻击者窃取会话Cookie、将用户重定向到恶意网站或代表已认证用户执行操作。</Description>
+      <Impact/>
+      <Remediation/>
+      <Source>Burp Suite</Source>
+      <ReproduceSteps>
+        <Step order="1"/>
+      </ReproduceSteps>
+    </Vulnerability>
+    <Vulnerability id="0007">
+      <CVE_ID/>
+      <Name>MuleSoft 5.7.7-SP7 SQL注入</Name>
+      <RiskLevel>high</RiskLevel>
+      <RiskLevelText>高危</RiskLevelText>
+      <Target>192.168.1.100</Target>
+      <Port>8080</Port>
+      <Protocol>TCP</Protocol>
+      <Description>在MuleSoft版本5.7.7-SP7中发现了SQL注入漏洞。Integration Platform组件在将用户输入用于SQL查询之前未能正确净化。攻击者可以利用此漏洞在后端数据库上执行任意SQL命令，可能未经授权访问敏感数据、修改数据库记录或执行管理操作。该漏洞源于输入验证不足以及在查询构造中使用字符串拼接而非参数化查询或预编译语句。</Description>
+      <Impact>成功利用可能导致攻击者绕过身份验证、从数据库中提取敏感数据（包括用户凭据和个人信息）、修改或删除数据库记录，在某些情况下还可以在数据库服务器上执行操作系统命令。</Impact>
+      <Remediation>应用供应商提供的补丁或对所有数据库交互使用参数化查询（预编译语句）。实施使用白名单的严格输入验证。部署具有SQL注入检测规则的Web应用防火墙（WAF）。对应用程序使用的数据库账户应用最小权限原则。</Remediation>
+      <Source>manual</Source>
+      <ReproduceSteps>
+        <Step order="1"/>
+      </ReproduceSteps>
+    </Vulnerability>
+  </Vulnerabilities>
+</SecReport>

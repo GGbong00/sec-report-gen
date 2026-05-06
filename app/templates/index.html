@@ -1,0 +1,776 @@
+{% extends "base.html" %}
+
+{% block title %}{{ i18n('app_title') }} - {{ i18n('nav_home') }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 欢迎区域 -->
+    <div class="dashboard-hero">
+        <div class="flex items-center space-x-4">
+            <div class="w-14 h-14 rounded-xl bg-accent-blue/10 border border-accent-blue/20 flex items-center justify-center">
+                <i class="fas fa-shield-halved text-accent-blue text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white" data-i18n="home_welcome">{{ i18n('home_welcome') }}</h1>
+                <p class="text-gray-400 text-sm mt-1" data-i18n="home_description">{{ i18n('home_description') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 项目信息卡片 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle text-accent-blue mr-2"></i>
+                <span data-i18n="report_project_info">{{ i18n('report_project_info') }}</span>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-2 gap-4" id="project-info-card">
+                    <div>
+                        <span class="text-gray-500 text-xs">{{ i18n('report_project_name') }}</span>
+                        <p class="text-white font-medium" id="dash-project-name">-</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 text-xs">{{ i18n('report_client_name') }}</span>
+                        <p class="text-white font-medium" id="dash-client-name">-</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 text-xs">{{ i18n('report_tester_name') }}</span>
+                        <p class="text-white font-medium" id="dash-tester-name">-</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 text-xs">{{ i18n('report_test_date') }}</span>
+                        <p class="text-white font-medium" id="dash-test-date">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 漏洞统计卡片 - 严重程度分布 (Doughnut Chart) -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie text-accent-blue mr-2"></i>
+                <span data-i18n="stats_severity_distribution">{{ i18n('stats_severity_distribution') }}</span>
+                <span class="ml-auto text-2xl font-bold text-white" id="stats-total">0</span>
+            </div>
+            <div class="card-body">
+                <div class="flex items-center justify-center" style="height: 220px;">
+                    <canvas id="severity-doughnut-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 - 第二行 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 扫描器来源分布 (Horizontal Bar Chart) -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-radar text-accent-orange mr-2"></i>
+                <span data-i18n="stats_scanner_distribution">{{ i18n('stats_scanner_distribution') }}</span>
+            </div>
+            <div class="card-body">
+                <div style="height: 250px;">
+                    <canvas id="scanner-bar-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 10 受影响目标 (Bar Chart) -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-crosshairs text-accent-red mr-2"></i>
+                <span data-i18n="stats_top_targets">{{ i18n('stats_top_targets') }}</span>
+            </div>
+            <div class="card-body">
+                <div style="height: 250px;">
+                    <canvas id="top-targets-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 - 第三行 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- CVSS 评分分布直方图 -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-gauge-high text-accent-yellow mr-2"></i>
+                <span data-i18n="cvss_score">{{ i18n('cvss_score') }} {{ i18n('stats_severity_distribution') }}</span>
+            </div>
+            <div class="card-body">
+                <div style="height: 220px;">
+                    <canvas id="cvss-histogram-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 漏洞状态分布 (Pie Chart) -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-list-check text-accent-green mr-2"></i>
+                <span data-i18n="vuln_status">{{ i18n('vuln_status') }} {{ i18n('stats_severity_distribution') }}</span>
+            </div>
+            <div class="card-body">
+                <div class="flex items-center justify-center" style="height: 220px;">
+                    <canvas id="status-pie-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表导出按钮 -->
+    <div class="flex justify-end">
+        <button onclick="exportChartsAsPNG()" class="btn-secondary">
+            <i class="fas fa-image mr-1.5"></i>{{ i18n('export') }} PNG
+        </button>
+    </div>
+
+    <!-- 快捷操作按钮 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <a href="/import" class="quick-action-card group">
+            <div class="quick-action-icon bg-accent-blue/10 group-hover:bg-accent-blue/20 border-accent-blue/20">
+                <i class="fas fa-file-import text-accent-blue text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-white font-semibold" data-i18n="home_step1">{{ i18n('home_step1') }}</h3>
+                <p class="text-gray-500 text-xs mt-1" data-i18n="home_step1_desc">{{ i18n('home_step1_desc') }}</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 group-hover:text-accent-blue ml-auto transition-colors"></i>
+        </a>
+        <a href="/vulnerabilities" class="quick-action-card group">
+            <div class="quick-action-icon bg-accent-orange/10 group-hover:bg-accent-orange/20 border-accent-orange/20">
+                <i class="fas fa-bug text-accent-orange text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-white font-semibold" data-i18n="home_step2">{{ i18n('home_step2') }}</h3>
+                <p class="text-gray-500 text-xs mt-1" data-i18n="home_step2_desc">{{ i18n('home_step2_desc') }}</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 group-hover:text-accent-orange ml-auto transition-colors"></i>
+        </a>
+        <a href="/report" class="quick-action-card group">
+            <div class="quick-action-icon bg-accent-green/10 group-hover:bg-accent-green/20 border-accent-green/20">
+                <i class="fas fa-file-export text-accent-green text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-white font-semibold" data-i18n="home_step3">{{ i18n('home_step3') }}</h3>
+                <p class="text-gray-500 text-xs mt-1" data-i18n="home_step3_desc">{{ i18n('home_step3_desc') }}</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-600 group-hover:text-accent-green ml-auto transition-colors"></i>
+        </a>
+    </div>
+
+    <!-- 最近导入记录 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-clock-rotate-left text-accent-blue mr-2"></i>
+            <span data-i18n="recent_imports">{{ i18n('recent_imports') }}</span>
+        </div>
+        <div class="card-body">
+            <div id="recent-imports" class="space-y-2">
+                <p class="text-gray-500 text-sm text-center py-4" data-i18n="no_data">{{ i18n('no_data') }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ============================================================
+// Chart.js 全局配置 - 暗色主题
+// ============================================================
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = 'rgba(51, 65, 85, 0.5)';
+Chart.defaults.font.family = "'Inter', 'system-ui', '-apple-system', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.plugins.legend.labels.padding = 16;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
+Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+Chart.defaults.plugins.tooltip.titleColor = '#f1f5f9';
+Chart.defaults.plugins.tooltip.bodyColor = '#94a3b8';
+Chart.defaults.plugins.tooltip.borderColor = 'rgba(51, 65, 85, 0.8)';
+Chart.defaults.plugins.tooltip.borderWidth = 1;
+Chart.defaults.plugins.tooltip.padding = 12;
+Chart.defaults.plugins.tooltip.cornerRadius = 8;
+Chart.defaults.plugins.tooltip.displayColors = true;
+Chart.defaults.plugins.tooltip.boxPadding = 4;
+
+// 图表实例引用
+let severityDoughnutChart = null;
+let scannerBarChart = null;
+let topTargetsChart = null;
+let cvssHistogramChart = null;
+let statusPieChart = null;
+
+// ============================================================
+// 页面初始化
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardStats();
+    // 监听数据变更事件（导入/删除等操作后自动刷新）
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'sec_report_data_updated') {
+            loadDashboardStats();
+        }
+    });
+});
+
+function loadDashboardStats() {
+    fetch('/api/stats')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const stats = data.stats;
+            const total = stats.total || 0;
+
+            // 更新统计数字
+            document.getElementById('stats-total').textContent = total;
+
+            // 更新项目信息
+            const pi = data.project_info || {};
+            document.getElementById('dash-project-name').textContent = pi.project_name || '-';
+            document.getElementById('dash-client-name').textContent = pi.client_name || '-';
+            document.getElementById('dash-tester-name').textContent = pi.tester_name || '-';
+            document.getElementById('dash-test-date').textContent = pi.test_date || '-';
+
+            // 更新最近导入
+            const imports = data.recent_imports || [];
+            const container = document.getElementById('recent-imports');
+            if (imports.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">' + (currentLang === 'zh' ? '暂无数据' : 'No data available') + '</p>';
+            } else {
+                container.innerHTML = imports.map(imp => `
+                    <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-dark-800/50">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-file-import text-accent-blue text-sm"></i>
+                            <span class="text-white text-sm">${escapeHtml(imp.filename)}</span>
+                            <span class="severity-badge severity-info">${imp.scanner_type}</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-xs text-gray-500">
+                            <span>${imp.total} vulns</span>
+                            <span>${imp.time}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // 更新底部状态栏
+            document.getElementById('vuln-count-footer').textContent =
+                (currentLang === 'zh' ? '当前漏洞: ' : 'Current vulns: ') + total;
+
+            // 获取详细漏洞数据用于图表
+            loadDetailedCharts();
+        })
+        .catch(err => console.error('Failed to load stats:', err));
+}
+
+function loadDetailedCharts() {
+    // 获取所有漏洞数据用于更详细的图表
+    fetch('/api/vulnerabilities?limit=10000')
+        .then(r => r.json())
+        .then(result => {
+            if (!result.success || !result.vulnerabilities) return;
+            const vulns = result.vulnerabilities;
+
+            // 1. 严重程度分布 - Doughnut Chart
+            renderSeverityDoughnut(vulns);
+
+            // 2. 扫描器来源分布 - Horizontal Bar Chart
+            renderScannerDistribution(vulns);
+
+            // 3. Top 10 受影响目标 - Bar Chart
+            renderTopTargets(vulns);
+
+            // 4. CVSS 评分分布直方图
+            renderCVSSHistogram(vulns);
+
+            // 5. 漏洞状态分布 - Pie Chart
+            renderStatusDistribution(vulns);
+        })
+        .catch(err => {
+            console.error('Failed to load detailed chart data:', err);
+            // 降级：使用基础统计数据渲染图表
+            renderChartsFromBasicStats();
+        });
+}
+
+// ============================================================
+// 1. 严重程度分布 - Doughnut Chart
+// ============================================================
+function renderSeverityDoughnut(vulns) {
+    const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    vulns.forEach(v => {
+        const s = (v.severity || 'info').toLowerCase();
+        if (severityCounts.hasOwnProperty(s)) severityCounts[s]++;
+        else severityCounts.info++;
+    });
+
+    const labels = [
+        getSeverityLabel('critical'),
+        getSeverityLabel('high'),
+        getSeverityLabel('medium'),
+        getSeverityLabel('low'),
+        getSeverityLabel('info'),
+    ];
+    const values = [severityCounts.critical, severityCounts.high, severityCounts.medium, severityCounts.low, severityCounts.info];
+    const colors = ['#dc2626', '#f97316', '#eab308', '#3b82f6', '#6b7280'];
+    const hoverColors = ['#ef4444', '#fb923c', '#facc15', '#60a5fa', '#9ca3af'];
+
+    const ctx = document.getElementById('severity-doughnut-chart').getContext('2d');
+    if (severityDoughnutChart) severityDoughnutChart.destroy();
+
+    severityDoughnutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                hoverBackgroundColor: hoverColors,
+                borderColor: '#1e293b',
+                borderWidth: 2,
+                hoverBorderColor: '#1e293b',
+                hoverOffset: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 12,
+                        font: { size: 11 },
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                            return ` ${context.label}: ${context.parsed} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+        }
+    });
+}
+
+// ============================================================
+// 2. 扫描器来源分布 - Horizontal Bar Chart
+// ============================================================
+function renderScannerDistribution(vulns) {
+    const scannerCounts = {};
+    vulns.forEach(v => {
+        const src = v.scanner_source || 'unknown';
+        scannerCounts[src] = (scannerCounts[src] || 0) + 1;
+    });
+
+    // 排序并取前 10
+    const sorted = Object.entries(scannerCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+    const labels = sorted.map(e => e[0]);
+    const values = sorted.map(e => e[1]);
+
+    // 为每个扫描器分配颜色
+    const barColors = [
+        '#3b82f6', '#22c55e', '#f97316', '#ef4444', '#eab308',
+        '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f43f5e'
+    ];
+
+    const ctx = document.getElementById('scanner-bar-chart').getContext('2d');
+    if (scannerBarChart) scannerBarChart.destroy();
+
+    scannerBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: currentLang === 'zh' ? '漏洞数量' : 'Vulnerabilities',
+                data: values,
+                backgroundColor: labels.map((_, i) => barColors[i % barColors.length] + '80'),
+                borderColor: labels.map((_, i) => barColors[i % barColors.length]),
+                borderWidth: 1,
+                borderRadius: 4,
+                barThickness: 18,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.parsed.x} ${currentLang === 'zh' ? '个漏洞' : 'vulns'}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, font: { size: 10 } },
+                    grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                },
+                y: {
+                    ticks: { font: { size: 11 } },
+                    grid: { display: false },
+                }
+            }
+        }
+    });
+}
+
+// ============================================================
+// 3. Top 10 受影响目标 - Bar Chart
+// ============================================================
+function renderTopTargets(vulns) {
+    const targetCounts = {};
+    vulns.forEach(v => {
+        const target = v.target || v.host || 'unknown';
+        if (target && target !== 'unknown') {
+            targetCounts[target] = (targetCounts[target] || 0) + 1;
+        }
+    });
+
+    const sorted = Object.entries(targetCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+    const labels = sorted.map(e => {
+        const t = e[0];
+        return t.length > 30 ? t.substring(0, 28) + '...' : t;
+    });
+    const values = sorted.map(e => e[1]);
+
+    const ctx = document.getElementById('top-targets-chart').getContext('2d');
+    if (topTargetsChart) topTargetsChart.destroy();
+
+    topTargetsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: currentLang === 'zh' ? '漏洞数量' : 'Vulnerabilities',
+                data: values,
+                backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                hoverBackgroundColor: 'rgba(239, 68, 68, 0.85)',
+                borderColor: '#ef4444',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.parsed.y} ${currentLang === 'zh' ? '个漏洞' : 'vulns'}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0 },
+                    grid: { display: false },
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, font: { size: 10 } },
+                    grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                }
+            }
+        }
+    });
+}
+
+// ============================================================
+// 4. CVSS 评分分布直方图
+// ============================================================
+function renderCVSSHistogram(vulns) {
+    // CVSS 评分区间: 0.0, 0.1-1.0, 1.1-2.0, ..., 9.1-10.0
+    const bins = new Array(11).fill(0); // 0..10
+    vulns.forEach(v => {
+        let score = parseFloat(v.cvss_score || v.cvss || 0);
+        if (isNaN(score) || score < 0) score = 0;
+        if (score > 10) score = 10;
+        const idx = Math.round(score);
+        bins[idx]++;
+    });
+
+    const labels = ['0.0', '1.0', '2.0', '3.0', '4.0', '5.0', '6.0', '7.0', '8.0', '9.0', '10.0'];
+
+    // 根据评分区间着色
+    const barColors = bins.map((_, i) => {
+        if (i >= 9) return 'rgba(220, 38, 38, 0.7)';      // Critical
+        if (i >= 7) return 'rgba(249, 115, 22, 0.7)';      // High
+        if (i >= 4) return 'rgba(234, 179, 8, 0.7)';       // Medium
+        if (i >= 1) return 'rgba(59, 130, 246, 0.7)';      // Low
+        return 'rgba(107, 114, 128, 0.7)';                 // Info/None
+    });
+
+    const borderColors = bins.map((_, i) => {
+        if (i >= 9) return '#dc2626';
+        if (i >= 7) return '#f97316';
+        if (i >= 4) return '#eab308';
+        if (i >= 1) return '#3b82f6';
+        return '#6b7280';
+    });
+
+    const ctx = document.getElementById('cvss-histogram-chart').getContext('2d');
+    if (cvssHistogramChart) cvssHistogramChart.destroy();
+
+    cvssHistogramChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'CVSS',
+                data: bins,
+                backgroundColor: barColors,
+                borderColor: borderColors,
+                borderWidth: 1,
+                borderRadius: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(items) {
+                            return `CVSS ${items[0].label}`;
+                        },
+                        label: function(context) {
+                            return ` ${context.parsed.y} ${currentLang === 'zh' ? '个漏洞' : 'vulns'}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'CVSS Score',
+                        color: '#64748b',
+                        font: { size: 11 },
+                    },
+                    ticks: { font: { size: 10 } },
+                    grid: { display: false },
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, font: { size: 10 } },
+                    grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                }
+            }
+        }
+    });
+}
+
+// ============================================================
+// 5. 漏洞状态分布 - Pie Chart
+// ============================================================
+function renderStatusDistribution(vulns) {
+    const statusCounts = {};
+    vulns.forEach(v => {
+        const status = v.status || 'discovered';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+
+    const statusLabels = {
+        'discovered': currentLang === 'zh' ? '已发现' : 'Discovered',
+        'confirmed': currentLang === 'zh' ? '已确认' : 'Confirmed',
+        'fixing': currentLang === 'zh' ? '修复中' : 'Fixing',
+        'fixed': currentLang === 'zh' ? '已修复' : 'Fixed',
+        'verified': currentLang === 'zh' ? '已验证' : 'Verified',
+        'closed': currentLang === 'zh' ? '已关闭' : 'Closed',
+    };
+
+    const sorted = Object.entries(statusCounts).sort((a, b) => b[1] - a[1]);
+    const labels = sorted.map(e => statusLabels[e[0]] || e[0]);
+    const values = sorted.map(e => e[1]);
+
+    const pieColors = [
+        '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#6b7280',
+        '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6'
+    ];
+
+    const ctx = document.getElementById('status-pie-chart').getContext('2d');
+    if (statusPieChart) statusPieChart.destroy();
+
+    statusPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: labels.map((_, i) => pieColors[i % pieColors.length] + 'cc'),
+                hoverBackgroundColor: labels.map((_, i) => pieColors[i % pieColors.length]),
+                borderColor: '#1e293b',
+                borderWidth: 2,
+                hoverOffset: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 12,
+                        font: { size: 11 },
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                            return ` ${context.label}: ${context.parsed} (${pct}%)`;
+                        }
+                    }
+                }
+            },
+        }
+    });
+}
+
+// ============================================================
+// 降级方案：使用基础统计数据渲染图表
+// ============================================================
+function renderChartsFromBasicStats() {
+    // 使用 /api/stats 返回的基础统计数据渲染严重程度图表
+    fetch('/api/stats')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const stats = data.stats;
+
+            const labels = [
+                getSeverityLabel('critical'),
+                getSeverityLabel('high'),
+                getSeverityLabel('medium'),
+                getSeverityLabel('low'),
+                getSeverityLabel('info'),
+            ];
+            const values = [stats.critical || 0, stats.high || 0, stats.medium || 0, stats.low || 0, stats.info || 0];
+            const colors = ['#dc2626', '#f97316', '#eab308', '#3b82f6', '#6b7280'];
+            const hoverColors = ['#ef4444', '#fb923c', '#facc15', '#60a5fa', '#9ca3af'];
+
+            const ctx = document.getElementById('severity-doughnut-chart').getContext('2d');
+            if (severityDoughnutChart) severityDoughnutChart.destroy();
+
+            severityDoughnutChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        hoverBackgroundColor: hoverColors,
+                        borderColor: '#1e293b',
+                        borderWidth: 2,
+                        hoverOffset: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { padding: 12, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                    return ` ${context.label}: ${context.parsed} (${pct}%)`;
+                                }
+                            }
+                        }
+                    },
+                }
+            });
+        })
+        .catch(err => console.error('Failed to load basic stats for charts:', err));
+}
+
+// ============================================================
+// 图表导出为 PNG
+// ============================================================
+function exportChartsAsPNG() {
+    const chartCanvases = [
+        { chart: severityDoughnutChart, title: 'severity-distribution' },
+        { chart: scannerBarChart, title: 'scanner-distribution' },
+        { chart: topTargetsChart, title: 'top-targets' },
+        { chart: cvssHistogramChart, title: 'cvss-histogram' },
+        { chart: statusPieChart, title: 'status-distribution' },
+    ].filter(item => item.chart !== null);
+
+    if (chartCanvases.length === 0) {
+        showToast(currentLang === 'zh' ? '没有可导出的图表' : 'No charts to export', 'warning');
+        return;
+    }
+
+    // 创建一个合并画布
+    const padding = 20;
+    const titleHeight = 30;
+    const chartWidth = 800;
+    const chartHeight = 400;
+    const totalHeight = chartCanvases.length * (chartHeight + titleHeight + padding) + padding;
+
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = chartWidth + padding * 2;
+    exportCanvas.height = totalHeight;
+    const ctx = exportCanvas.getContext('2d');
+
+    // 深色背景
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+    let yOffset = padding;
+
+    chartCanvases.forEach((item, index) => {
+        // 标题
+        ctx.fillStyle = '#f1f5f9';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText(item.title, padding, yOffset + 20);
+        yOffset += titleHeight;
+
+        // 绘制图表
+        const chartCanvas = item.chart.canvas;
+        ctx.drawImage(chartCanvas, padding, yOffset, chartWidth, chartHeight);
+        yOffset += chartHeight + padding;
+    });
+
+    // 导出下载
+    const link = document.createElement('a');
+    link.download = 'security-report-charts.png';
+    link.href = exportCanvas.toDataURL('image/png');
+    link.click();
+
+    showToast(currentLang === 'zh' ? '图表已导出为 PNG' : 'Charts exported as PNG', 'success');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><title>绿盟RSAS - 漏洞扫描报告</title></head>
+<body>
+<h1>漏洞扫描报告</h1>
+<h2>基本信息</h2>
+<p>扫描目标: 192.168.1.0/24</p>
+<p>扫描时间: 2026-04-13</p>
+<h2>漏洞列表</h2>
+<table border="1">
+<tr><th>漏洞名称</th><th>风险等级</th><th>CVE</th><th>影响主机</th><th>端口</th><th>描述</th><th>修复建议</th></tr>
+<tr><td>Apache Tomcat AJP 文件读取/包含漏洞</td><td>严重</td><td>CVE-2020-1938</td><td>192.168.1.100</td><td>8009</td><td>Apache Tomcat AJP连接器存在文件读取/包含漏洞(Ghostcat)，攻击者可读取webapp目录下的任意文件。</td><td>升级Apache Tomcat至9.0.31或更高版本。如不使用AJP协议，建议直接禁用。</td></tr>
+<tr><td>OpenSSL Heartbleed 信息泄露漏洞</td><td>高危</td><td>CVE-2014-0160</td><td>192.168.1.100</td><td>443</td><td>OpenSSL存在Heartbleed漏洞，攻击者可读取服务器内存中最多64KB的数据，可能包含私钥、用户凭据等敏感信息。</td><td>升级OpenSSL至1.0.1g或更高版本。重新生成SSL证书和密钥。</td></tr>
+<tr><td>SSH弱加密算法支持</td><td>中危</td><td></td><td>192.168.1.100</td><td>22</td><td>SSH服务器支持CBC模式加密算法，可能存在安全隐患。</td><td>在SSH配置中禁用CBC模式加密算法，仅启用AES-GCM等强加密算法。</td></tr>
+<tr><td>Redis未授权访问</td><td>高危</td><td></td><td>192.168.1.101</td><td>6379</td><td>Redis服务未设置密码认证，任何用户可直接连接并执行任意命令。</td><td>为Redis设置强密码认证。限制Redis监听地址为127.0.0.1。禁用危险命令。</td></tr>
+<tr><td>MySQL弱密码</td><td>高危</td><td></td><td>192.168.1.101</td><td>3306</td><td>MySQL数据库使用弱密码，可被暴力破解。</td><td>设置强密码策略。限制远程root登录。定期更换密码。</td></tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,1027 @@
+{% extends "base.html" %}
+
+{% block title %}{{ i18n('app_title') }} - {{ i18n('nav_report') }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-accent-green/10 border border-accent-green/20 flex items-center justify-center">
+            <i class="fas fa-file-export text-accent-green"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold text-white" data-i18n="report_title">{{ i18n('report_title') }}</h1>
+            <p class="text-gray-500 text-sm" data-i18n="report_select_format">{{ i18n('report_select_format') }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左侧主内容 -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- 报告模板选择 -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-palette text-accent-blue mr-2"></i>
+                    <span data-i18n="report_select_template">{{ i18n('report_select_template') }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="template-grid">
+                        <!-- Professional / 企业合规版 -->
+                        <button onclick="selectTemplate('professional')" class="template-card" data-template="professional">
+                            <div class="template-preview-icon bg-blue-500/10 border-blue-500/20">
+                                <i class="fas fa-building text-blue-400 text-2xl"></i>
+                            </div>
+                            <div class="template-info">
+                                <span class="template-name">{{ i18n('template_professional') }}</span>
+                                <span class="template-desc">{{ i18n('report_template_professional') if i18n('report_template_professional') != 'report_template_professional' else ('适合企业合规审计，包含完整的合规检查项和风险评级' if lang == 'zh' else 'Suitable for enterprise compliance audits with full compliance items and risk ratings') }}</span>
+                            </div>
+                            <div class="template-check">
+                                <i class="fas fa-check-circle text-accent-blue text-lg"></i>
+                            </div>
+                        </button>
+                        <!-- Pentest / 渗透实战版 -->
+                        <button onclick="selectTemplate('pentest')" class="template-card" data-template="pentest">
+                            <div class="template-preview-icon bg-red-500/10 border-red-500/20">
+                                <i class="fas fa-crosshairs text-red-400 text-2xl"></i>
+                            </div>
+                            <div class="template-info">
+                                <span class="template-name">{{ i18n('template_pentest') }}</span>
+                                <span class="template-desc">{{ '聚焦渗透测试实战，突出漏洞利用路径和攻击链分析' if lang == 'zh' else 'Focused on penetration testing with exploit paths and attack chain analysis' }}</span>
+                            </div>
+                            <div class="template-check">
+                                <i class="fas fa-check-circle text-accent-blue text-lg"></i>
+                            </div>
+                        </button>
+                        <!-- Simple / 简洁摘要版 -->
+                        <button onclick="selectTemplate('simple')" class="template-card" data-template="simple">
+                            <div class="template-preview-icon bg-green-500/10 border-green-500/20">
+                                <i class="fas fa-file-lines text-green-400 text-2xl"></i>
+                            </div>
+                            <div class="template-info">
+                                <span class="template-name">{{ i18n('template_simple') }}</span>
+                                <span class="template-desc">{{ i18n('report_template_simple') if i18n('report_template_simple') != 'report_template_simple' else ('简洁明了的摘要报告，适合管理层快速审阅' if lang == 'zh' else 'Concise summary report for management review') }}</span>
+                            </div>
+                            <div class="template-check">
+                                <i class="fas fa-check-circle text-accent-blue text-lg"></i>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 项目信息表单 -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-clipboard-list text-accent-blue mr-2"></i>
+                    <span data-i18n="report_project_info">{{ i18n('report_project_info') }}</span>
+                </div>
+                <div class="card-body">
+                    <form id="project-form" onsubmit="saveProjectInfo(event)">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="form-label">{{ i18n('report_project_name') }}</label>
+                                <input type="text" id="project-name" class="form-input" placeholder="{{ i18n('report_project_name') }}">
+                            </div>
+                            <div>
+                                <label class="form-label">{{ i18n('report_client_name') }}</label>
+                                <input type="text" id="client-name" class="form-input" placeholder="{{ i18n('report_client_name') }}">
+                            </div>
+                            <div>
+                                <label class="form-label">{{ i18n('report_tester_name') }}</label>
+                                <input type="text" id="tester-name" class="form-input" placeholder="{{ i18n('report_tester_name') }}">
+                            </div>
+                            <div>
+                                <label class="form-label">{{ i18n('report_test_date') }}</label>
+                                <input type="date" id="test-date" class="form-input">
+                            </div>
+                            <div>
+                                <label class="form-label">{{ i18n('report_test_type') }}</label>
+                                <select id="test-type" class="form-input">
+                                    <option value="">{{ i18n('report_test_type') }}</option>
+                                    <option value="blackbox">{{ i18n('report_test_type_blackbox') }}</option>
+                                    <option value="whitebox">{{ i18n('report_test_type_whitebox') }}</option>
+                                    <option value="graybox">{{ i18n('report_test_type_graybox') }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">{{ i18n('report_select_language') }}</label>
+                                <select id="report-language" class="form-input">
+                                    <option value="zh">{{ i18n('report_language_zh') }}</option>
+                                    <option value="en">{{ i18n('report_language_en') }}</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="form-label">{{ i18n('report_tools_used') }}</label>
+                                <div class="multi-select-wrapper" id="tools-used-wrapper">
+                                    <div class="multi-select-display form-input" onclick="toggleMultiSelectDropdown('tools-used-dropdown')">
+                                        <div class="multi-select-tags" id="tools-used-tags"></div>
+                                        <span class="multi-select-placeholder" id="tools-used-placeholder">{{ i18n('report_tools_used') }}</span>
+                                        <i class="fas fa-chevron-down multi-select-arrow"></i>
+                                    </div>
+                                    <div class="multi-select-dropdown hidden" id="tools-used-dropdown">
+                                        <div class="multi-select-option" data-value="nmap" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>Nmap
+                                        </div>
+                                        <div class="multi-select-option" data-value="nessus" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>Nessus
+                                        </div>
+                                        <div class="multi-select-option" data-value="burpsuite" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>BurpSuite
+                                        </div>
+                                        <div class="multi-select-option" data-value="awvs" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>AWVS
+                                        </div>
+                                        <div class="multi-select-option" data-value="zap" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>OWASP ZAP
+                                        </div>
+                                        <div class="multi-select-option" data-value="xray" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>Xray
+                                        </div>
+                                        <div class="multi-select-option" data-value="nuclei" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>Nuclei
+                                        </div>
+                                        <div class="multi-select-option" data-value="sqlmap" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>SQLMap
+                                        </div>
+                                        <div class="multi-select-option" data-value="nsfocus" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>{{ '绿盟 RSAS' if lang == 'zh' else 'NSFocus RSAS' }}
+                                        </div>
+                                        <div class="multi-select-option" data-value="anheng" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>{{ '安恒明鉴' if lang == 'zh' else 'Anheng Mingjian' }}
+                                        </div>
+                                        <div class="multi-select-option" data-value="venustech" onclick="toggleMultiSelectOption('tools-used', this)">
+                                            <i class="fas fa-check multi-select-check"></i>{{ '启明星辰天镜' if lang == 'zh' else 'Venustech Tianjing' }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="tools-used" value="">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="form-label">{{ i18n('report_scope') }}</label>
+                                <textarea id="test-scope" class="form-input h-20 resize-y" placeholder="{{ i18n('report_scope') }}"></textarea>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="form-label">{{ i18n('report_summary') }}</label>
+                                <textarea id="test-summary" class="form-input h-24 resize-y" placeholder="{{ i18n('report_summary') }}"></textarea>
+                            </div>
+                        </div>
+                        <div class="flex justify-end mt-4">
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save mr-1.5"></i>{{ i18n('save') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 导出格式选择 -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-file-circle-check text-accent-green mr-2"></i>
+                    <span data-i18n="report_select_format">{{ i18n('report_select_format') }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-3" id="format-grid">
+                        <!-- Word -->
+                        <button onclick="selectFormat('word')" class="format-card" data-format="word">
+                            <div class="format-icon bg-blue-500/10 text-blue-400">
+                                <i class="fas fa-file-word text-2xl"></i>
+                            </div>
+                            <span class="format-name">Word</span>
+                            <span class="format-ext">.docx</span>
+                        </button>
+                        <!-- PDF -->
+                        <button onclick="selectFormat('pdf')" class="format-card" data-format="pdf">
+                            <div class="format-icon bg-red-500/10 text-red-400">
+                                <i class="fas fa-file-pdf text-2xl"></i>
+                            </div>
+                            <span class="format-name">PDF</span>
+                            <span class="format-ext">.pdf</span>
+                        </button>
+                        <!-- Excel -->
+                        <button onclick="selectFormat('excel')" class="format-card" data-format="excel">
+                            <div class="format-icon bg-green-500/10 text-green-400">
+                                <i class="fas fa-file-excel text-2xl"></i>
+                            </div>
+                            <span class="format-name">Excel</span>
+                            <span class="format-ext">.xlsx</span>
+                        </button>
+                        <!-- HTML -->
+                        <button onclick="selectFormat('html')" class="format-card" data-format="html">
+                            <div class="format-icon bg-orange-500/10 text-orange-400">
+                                <i class="fas fa-file-code text-2xl"></i>
+                            </div>
+                            <span class="format-name">HTML</span>
+                            <span class="format-ext">.html</span>
+                        </button>
+                        <!-- Markdown -->
+                        <button onclick="selectFormat('markdown')" class="format-card" data-format="markdown">
+                            <div class="format-icon bg-purple-500/10 text-purple-400">
+                                <i class="fab fa-markdown text-2xl"></i>
+                            </div>
+                            <span class="format-name">Markdown</span>
+                            <span class="format-ext">.md</span>
+                        </button>
+                        <!-- JSON -->
+                        <button onclick="selectFormat('json')" class="format-card" data-format="json">
+                            <div class="format-icon bg-yellow-500/10 text-yellow-400">
+                                <i class="fas fa-file-code text-2xl"></i>
+                            </div>
+                            <span class="format-name">JSON</span>
+                            <span class="format-ext">.json</span>
+                        </button>
+                        <!-- XML -->
+                        <button onclick="selectFormat('xml')" class="format-card" data-format="xml">
+                            <div class="format-icon bg-teal-500/10 text-teal-400">
+                                <i class="fas fa-file-lines text-2xl"></i>
+                            </div>
+                            <span class="format-name">XML</span>
+                            <span class="format-ext">.xml</span>
+                        </button>
+                        <!-- CSV -->
+                        <button onclick="selectFormat('csv')" class="format-card" data-format="csv">
+                            <div class="format-icon bg-cyan-500/10 text-cyan-400">
+                                <i class="fas fa-file-csv text-2xl"></i>
+                            </div>
+                            <span class="format-name">CSV</span>
+                            <span class="format-ext">.csv</span>
+                        </button>
+                        <!-- TXT -->
+                        <button onclick="selectFormat('txt')" class="format-card" data-format="txt">
+                            <div class="format-icon bg-gray-500/10 text-gray-400">
+                                <i class="fas fa-file-alt text-2xl"></i>
+                            </div>
+                            <span class="format-name">TXT</span>
+                            <span class="format-ext">.txt</span>
+                        </button>
+                    </div>
+
+                    <!-- 生成按钮区域 -->
+                    <div class="flex items-center justify-between mt-6 pt-4 border-t border-dark-600">
+                        <div class="flex items-center space-x-4 flex-wrap gap-y-2">
+                            <span class="text-gray-500 text-sm" id="selected-format-label">
+                                {{ i18n('report_select_format') }}
+                            </span>
+                            <!-- 扫描器来源筛选 -->
+                            <div class="multi-select-wrapper" id="scanner-source-filter-wrapper" style="min-width:180px;">
+                                <div class="multi-select-display filter-select" onclick="toggleMultiSelectDropdown('scanner-source-filter-dropdown')" style="padding:0.4rem 0.75rem;font-size:0.85rem;">
+                                    <div class="multi-select-tags" id="scanner-source-filter-tags"></div>
+                                    <span class="multi-select-placeholder" id="scanner-source-filter-placeholder">{{ i18n('report_scanner_source_all') }}</span>
+                                    <i class="fas fa-chevron-down multi-select-arrow"></i>
+                                </div>
+                                <div class="multi-select-dropdown hidden" id="scanner-source-filter-dropdown">
+                                    <!-- 动态加载 -->
+                                </div>
+                            </div>
+                            <!-- 自动翻译为中文选项 -->
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="auto-translate-checkbox" class="accent-accent-blue w-4 h-4">
+                                <span class="text-sm text-gray-400">
+                                    <i class="fas fa-language mr-1"></i>{{ i18n('auto_translate') if i18n('auto_translate') != 'auto_translate' else 'Auto translate to Chinese' }}
+                                </span>
+                            </label>
+                            <span class="text-xs text-gray-600" id="translate-hint">
+                                ({{ i18n('translate_hint') if i18n('translate_hint') != 'translate_hint' else 'Uses offline glossary to translate vulnerability content' }})
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <!-- 在线预览按钮 -->
+                            <button onclick="previewReport()" class="btn-secondary" id="preview-btn">
+                                <i class="fas fa-eye mr-1.5"></i>{{ i18n('preview') if i18n('preview') != 'preview' else '在线预览' }}
+                            </button>
+                            <!-- 生成报告按钮 -->
+                            <button onclick="generateReport()" class="btn-primary btn-lg" id="generate-btn">
+                                <i class="fas fa-wand-magic-sparkles mr-1.5"></i>{{ i18n('report_generate') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：生成历史 -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-clock-rotate-left text-accent-blue mr-2"></i>
+                <span data-i18n="report_history">{{ i18n('report_history') }}</span>
+            </div>
+            <div class="card-body">
+                <div id="report-history" class="space-y-2">
+                    <p class="text-gray-500 text-sm text-center py-4" data-i18n="no_data">{{ i18n('no_data') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 全屏预览模态框 -->
+<div id="preview-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex flex-col">
+    <!-- 预览顶栏 -->
+    <div class="flex items-center justify-between px-6 py-3 bg-dark-900 border-b border-dark-600">
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-eye text-accent-blue"></i>
+            <span class="text-white font-semibold">{{ i18n('preview') if i18n('preview') != 'preview' else '在线预览' }}</span>
+            <span class="text-gray-500 text-sm" id="preview-vuln-count"></span>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="closePreviewModal()" class="btn-secondary">
+                <i class="fas fa-times mr-1.5"></i>{{ i18n('close') }}
+            </button>
+        </div>
+    </div>
+    <!-- 预览内容 iframe -->
+    <div class="flex-1 relative">
+        <iframe id="preview-iframe" class="w-full h-full border-0 bg-white" sandbox="allow-scripts"></iframe>
+        <!-- 加载中遮罩 -->
+        <div id="preview-loading" class="absolute inset-0 flex items-center justify-center bg-dark-800">
+            <div class="text-center">
+                <i class="fas fa-spinner fa-spin text-accent-blue text-3xl mb-3"></i>
+                <p class="text-gray-400">{{ i18n('loading') }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let selectedFormat = null;
+let selectedTemplate = 'professional';
+
+// Multi-select state
+const multiSelectState = {
+    'tools-used': [],
+    'scanner-source-filter': [],
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadProjectInfo();
+    loadReportHistory();
+    loadScannerSources();
+    // 设置默认日期
+    document.getElementById('test-date').value = new Date().toISOString().split('T')[0];
+    // 默认选中 professional 模板
+    selectTemplate('professional');
+    // 监听数据变更事件（导入/删除等操作后自动刷新）
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'sec_report_data_updated') {
+            loadScannerSources();
+        }
+    });
+});
+
+// ============================================================
+// Multi-select Dropdown Logic
+// ============================================================
+function toggleMultiSelectDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    // Close all other dropdowns first
+    document.querySelectorAll('.multi-select-dropdown').forEach(d => {
+        if (d.id !== dropdownId) d.classList.add('hidden');
+    });
+    dropdown.classList.toggle('hidden');
+}
+
+function toggleMultiSelectOption(selectId, optionEl) {
+    const value = optionEl.dataset.value;
+    const state = multiSelectState[selectId] || [];
+    const idx = state.indexOf(value);
+    if (idx > -1) {
+        state.splice(idx, 1);
+        optionEl.classList.remove('selected');
+    } else {
+        state.push(value);
+        optionEl.classList.add('selected');
+    }
+    multiSelectState[selectId] = state;
+    updateMultiSelectDisplay(selectId);
+}
+
+function updateMultiSelectDisplay(selectId) {
+    const state = multiSelectState[selectId] || [];
+    const tagsContainer = document.getElementById(selectId + '-tags');
+    const placeholder = document.getElementById(selectId + '-placeholder');
+    const hiddenInput = document.getElementById(selectId);
+
+    if (tagsContainer) {
+        if (state.length === 0) {
+            tagsContainer.innerHTML = '';
+            if (placeholder) placeholder.classList.remove('hidden');
+        } else {
+            if (placeholder) placeholder.classList.add('hidden');
+            // Get display names from selected options
+            const dropdown = document.getElementById(selectId + '-dropdown');
+            const options = dropdown.querySelectorAll('.multi-select-option');
+            tagsContainer.innerHTML = '';
+            state.forEach(val => {
+                options.forEach(opt => {
+                    if (opt.dataset.value === val) {
+                        const tag = document.createElement('span');
+                        tag.className = 'multi-select-tag';
+                        tag.textContent = opt.textContent.trim();
+                        tag.dataset.value = val;
+                        tag.onclick = function(e) {
+                            e.stopPropagation();
+                            // Find and toggle the corresponding option
+                            const optEl = dropdown.querySelector(`.multi-select-option[data-value="${val}"]`);
+                            if (optEl) toggleMultiSelectOption(selectId, optEl);
+                        };
+                        tagsContainer.appendChild(tag);
+                    }
+                });
+            });
+        }
+    }
+
+    if (hiddenInput) {
+        hiddenInput.value = state.join(',');
+    }
+}
+
+function setMultiSelectValues(selectId, values) {
+    const dropdown = document.getElementById(selectId + '-dropdown');
+    if (!dropdown) return;
+    // Clear current
+    multiSelectState[selectId] = [];
+    dropdown.querySelectorAll('.multi-select-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    // Set new values
+    if (values && Array.isArray(values)) {
+        values.forEach(val => {
+            const opt = dropdown.querySelector(`.multi-select-option[data-value="${val}"]`);
+            if (opt) {
+                multiSelectState[selectId].push(val);
+                opt.classList.add('selected');
+            }
+        });
+    }
+    updateMultiSelectDisplay(selectId);
+}
+
+function getSelectedScannerSources() {
+    return multiSelectState['scanner-source-filter'] || [];
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.multi-select-wrapper')) {
+        document.querySelectorAll('.multi-select-dropdown').forEach(d => {
+            d.classList.add('hidden');
+        });
+    }
+});
+
+function loadProjectInfo() {
+    fetch('/api/stats')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.project_info) {
+                const pi = data.project_info;
+                document.getElementById('project-name').value = pi.project_name || '';
+                document.getElementById('client-name').value = pi.client_name || '';
+                document.getElementById('tester-name').value = pi.tester_name || '';
+                document.getElementById('test-date').value = pi.test_date || '';
+                document.getElementById('test-type').value = pi.test_type || '';
+                document.getElementById('test-scope').value = pi.scope || '';
+                document.getElementById('test-summary').value = pi.summary || '';
+                document.getElementById('report-language').value = pi.language || 'zh';
+                // 恢复工具选择（从逗号分隔字符串恢复多选）
+                const toolsStr = pi.tools_used || '';
+                if (toolsStr) {
+                    const toolsArr = toolsStr.split(',').map(t => t.trim()).filter(t => t);
+                    setMultiSelectValues('tools-used', toolsArr);
+                }
+                // 恢复模板选择
+                if (pi.template_type) {
+                    selectTemplate(pi.template_type);
+                }
+            }
+        })
+        .catch(err => console.error('Failed to load project info:', err));
+}
+
+function loadScannerSources() {
+    fetch('/api/vulnerabilities/scanner-sources')
+        .then(r => r.json())
+        .then(data => {
+            const dropdown = document.getElementById('scanner-source-filter-dropdown');
+            if (!dropdown) return;
+            dropdown.innerHTML = '';
+            if (data.success && data.sources && data.sources.length > 0) {
+                data.sources.forEach(source => {
+                    const opt = document.createElement('div');
+                    opt.className = 'multi-select-option';
+                    opt.dataset.value = source;
+                    opt.onclick = function() { toggleMultiSelectOption('scanner-source-filter', this); };
+                    opt.innerHTML = '<i class="fas fa-check multi-select-check"></i>' + escapeHtml(source);
+                    dropdown.appendChild(opt);
+                });
+            } else {
+                dropdown.innerHTML = '<div class="multi-select-option disabled" style="color:var(--text-muted);cursor:default;">' +
+                    (currentLang === 'zh' ? '暂无数据' : 'No data') + '</div>';
+            }
+        })
+        .catch(err => console.error('Failed to load scanner sources:', err));
+}
+
+function saveProjectInfo(event) {
+    event.preventDefault();
+    const data = {
+        project_name: document.getElementById('project-name').value,
+        client_name: document.getElementById('client-name').value,
+        tester_name: document.getElementById('tester-name').value,
+        test_date: document.getElementById('test-date').value,
+        test_type: document.getElementById('test-type').value,
+        scope: document.getElementById('test-scope').value,
+        tools_used: document.getElementById('tools-used').value,
+        summary: document.getElementById('test-summary').value,
+        language: document.getElementById('report-language').value,
+        template_type: selectedTemplate,
+    };
+
+    fetch('/api/report/project-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.success) {
+            showToast(currentLang === 'zh' ? '项目信息已保存' : 'Project info saved', 'success');
+        } else {
+            showToast(result.message, 'error');
+        }
+    })
+    .catch(err => showToast(currentLang === 'zh' ? '保存失败' : 'Save failed', 'error'));
+}
+
+function selectTemplate(template) {
+    selectedTemplate = template;
+    // 更新选中状态
+    document.querySelectorAll('.template-card').forEach(card => {
+        card.classList.remove('template-card-selected');
+    });
+    const selected = document.querySelector(`.template-card[data-template="${template}"]`);
+    if (selected) {
+        selected.classList.add('template-card-selected');
+    }
+}
+
+function selectFormat(format) {
+    selectedFormat = format;
+    // 更新选中状态
+    document.querySelectorAll('.format-card').forEach(card => {
+        card.classList.remove('format-card-selected');
+    });
+    const selected = document.querySelector(`.format-card[data-format="${format}"]`);
+    if (selected) {
+        selected.classList.add('format-card-selected');
+    }
+    document.getElementById('selected-format-label').textContent =
+        (currentLang === 'zh' ? '已选择: ' : 'Selected: ') + format.toUpperCase();
+}
+
+function generateReport() {
+    if (!selectedFormat) {
+        showToast(currentLang === 'zh' ? '请先选择导出格式' : 'Please select an export format', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('generate-btn');
+    const autoTranslate = document.getElementById('auto-translate-checkbox').checked;
+
+    if (autoTranslate) {
+        // 先翻译所有漏洞，再生成报告
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>' + (currentLang === 'zh' ? '正在翻译...' : 'Translating...');
+
+        fetch('/api/vulnerabilities/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        })
+        .then(r => r.json())
+        .then(translateResult => {
+            if (translateResult.success) {
+                showToast(currentLang === 'zh'
+                    ? `翻译完成，共翻译 ${translateResult.translated_count} 个漏洞，正在生成报告...`
+                    : `Translated ${translateResult.translated_count} vulnerabilities, generating report...`,
+                    'success'
+                );
+            } else {
+                showToast(currentLang === 'zh' ? '翻译失败，将使用原文生成报告' : 'Translation failed, generating with original content', 'warning');
+            }
+            // 无论翻译成功与否，继续生成报告
+            _doGenerateReport(btn);
+        })
+        .catch(err => {
+            showToast(currentLang === 'zh' ? '翻译请求失败，将使用原文生成报告' : 'Translation failed, generating with original content', 'warning');
+            _doGenerateReport(btn);
+        });
+    } else {
+        _doGenerateReport(btn);
+    }
+}
+
+function _doGenerateReport(btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>' + (currentLang === 'zh' ? '正在生成...' : 'Generating...');
+
+    const data = {
+        format: selectedFormat,
+        language: document.getElementById('report-language').value,
+        template_type: selectedTemplate,
+        scanner_sources: getSelectedScannerSources(),
+    };
+
+    fetch('/api/report/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    })
+    .then(r => r.json())
+    .then(async result => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-wand-magic-sparkles mr-1.5"></i>' + (currentLang === 'zh' ? '生成报告' : 'Generate Report');
+
+        if (result.success) {
+            // Electron 中弹窗让用户选择保存路径
+            if (typeof window.electronAPI !== 'undefined' && window.electronAPI.saveReportFile) {
+                try {
+                    const saved = await window.electronAPI.saveReportFile(result.filename, result.file_data);
+                    if (saved) {
+                        showToast(currentLang === 'zh' ? '报告已保存' : 'Report saved', 'success');
+                    }
+                } catch (e) {
+                    showToast(currentLang === 'zh' ? '保存失败: ' + e.message : 'Save failed: ' + e.message, 'error');
+                }
+            } else {
+                // 浏览器中回退到直接下载
+                const blob = base64ToBlob(result.file_data, result.format);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = result.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(currentLang === 'zh' ? '报告生成成功，正在下载...' : 'Report generated, downloading...', 'success');
+            }
+            loadReportHistory();
+        } else {
+            showToast(result.message, 'error');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-wand-magic-sparkles mr-1.5"></i>' + (currentLang === 'zh' ? '生成报告' : 'Generate Report');
+        showToast(currentLang === 'zh' ? '生成失败: ' + err.message : 'Generation failed: ' + err.message, 'error');
+    });
+}
+
+function base64ToBlob(base64Data, format) {
+    const mimeMap = {
+        'pdf': 'application/pdf', 'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'html': 'text/html', 'json': 'application/json', 'csv': 'text/csv',
+        'txt': 'text/plain', 'xml': 'application/xml', 'md': 'text/markdown',
+    };
+    const mime = mimeMap[format] || 'application/octet-stream';
+    const binary = atob(base64Data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+}
+
+// ============================================================
+// 在线预览
+// ============================================================
+function previewReport() {
+    const previewBtn = document.getElementById('preview-btn');
+    const modal = document.getElementById('preview-modal');
+    const loading = document.getElementById('preview-loading');
+    const iframe = document.getElementById('preview-iframe');
+    const vulnCountEl = document.getElementById('preview-vuln-count');
+
+    // 显示模态框
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    previewBtn.disabled = true;
+    previewBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i>' + (currentLang === 'zh' ? '加载中...' : 'Loading...');
+
+    const scannerSources = getSelectedScannerSources();
+    const sourceParam = scannerSources.length > 0 ? '&scanner_sources=' + encodeURIComponent(scannerSources.join(',')) : '';
+
+    fetch('/api/report/preview?template_type=' + encodeURIComponent(selectedTemplate) + sourceParam)
+        .then(r => r.json())
+        .then(result => {
+            previewBtn.disabled = false;
+            previewBtn.innerHTML = '<i class="fas fa-eye mr-1.5"></i>' + (currentLang === 'zh' ? '在线预览' : 'Online Preview');
+
+            if (result.success) {
+                vulnCountEl.textContent = (currentLang === 'zh' ? '共 ' : '') + result.vuln_count + (currentLang === 'zh' ? ' 个漏洞' : ' vulnerabilities');
+                // 使用 srcdoc 写入 iframe
+                iframe.srcdoc = result.html;
+                loading.classList.add('hidden');
+            } else {
+                closePreviewModal();
+                showToast(result.message || (currentLang === 'zh' ? '预览失败' : 'Preview failed'), 'error');
+            }
+        })
+        .catch(err => {
+            previewBtn.disabled = false;
+            previewBtn.innerHTML = '<i class="fas fa-eye mr-1.5"></i>' + (currentLang === 'zh' ? '在线预览' : 'Online Preview');
+            closePreviewModal();
+            showToast(currentLang === 'zh' ? '预览请求失败: ' + err.message : 'Preview failed: ' + err.message, 'error');
+        });
+}
+
+function closePreviewModal() {
+    const modal = document.getElementById('preview-modal');
+    const iframe = document.getElementById('preview-iframe');
+    modal.classList.add('hidden');
+    iframe.srcdoc = '';
+    document.body.style.overflow = '';
+}
+
+// ESC 键关闭预览
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('preview-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            closePreviewModal();
+        }
+    }
+});
+
+// ============================================================
+// 报告历史
+// ============================================================
+function loadReportHistory() {
+    fetch('/api/report/history')
+        .then(r => r.json())
+        .then(result => {
+            const container = document.getElementById('report-history');
+            if (!result.success || !result.history || result.history.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">' + (currentLang === 'zh' ? '暂无数据' : 'No data available') + '</p>';
+                return;
+            }
+
+            // 格式图标映射
+            const formatIcons = {
+                'word': { icon: 'fas fa-file-word', color: 'text-blue-400' },
+                'docx': { icon: 'fas fa-file-word', color: 'text-blue-400' },
+                'pdf': { icon: 'fas fa-file-pdf', color: 'text-red-400' },
+                'excel': { icon: 'fas fa-file-excel', color: 'text-green-400' },
+                'xlsx': { icon: 'fas fa-file-excel', color: 'text-green-400' },
+                'html': { icon: 'fas fa-file-code', color: 'text-orange-400' },
+                'markdown': { icon: 'fab fa-markdown', color: 'text-purple-400' },
+                'md': { icon: 'fab fa-markdown', color: 'text-purple-400' },
+                'json': { icon: 'fas fa-file-code', color: 'text-yellow-400' },
+                'xml': { icon: 'fas fa-file-lines', color: 'text-teal-400' },
+                'csv': { icon: 'fas fa-file-csv', color: 'text-cyan-400' },
+                'txt': { icon: 'fas fa-file-alt', color: 'text-gray-400' },
+            };
+
+            // 模板名称映射
+            const templateNames = {
+                'professional': currentLang === 'zh' ? '企业合规版' : 'Professional',
+                'pentest': currentLang === 'zh' ? '渗透实战版' : 'Pentest',
+                'simple': currentLang === 'zh' ? '简洁摘要版' : 'Simple',
+            };
+
+            container.innerHTML = result.history.map(item => {
+                const fi = formatIcons[item.format] || { icon: 'fas fa-file', color: 'text-gray-400' };
+                const templateName = templateNames[item.template] || item.template || '-';
+                return `
+                    <div class="flex items-center justify-between py-2.5 px-3 rounded-lg bg-dark-800/50 hover:bg-dark-800/80 transition-colors">
+                        <div class="flex items-center space-x-3 min-w-0">
+                            <i class="${fi.icon} ${fi.color} text-sm flex-shrink-0"></i>
+                            <div class="min-w-0">
+                                <p class="text-white text-sm truncate">${escapeHtml(item.filename || '-')}</p>
+                                <p class="text-gray-600 text-xs">${templateName} &middot; ${item.format ? item.format.toUpperCase() : '-'} &middot; ${item.vuln_count || 0} vulns</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 flex-shrink-0">
+                            <span class="text-xs text-gray-500">${item.time || ''}</span>
+                            ${item.download_url ? `<a href="${escapeHtml(item.download_url)}" class="text-accent-blue hover:text-accent-blue/80 text-xs" title="${currentLang === 'zh' ? '下载' : 'Download'}"><i class="fas fa-download"></i></a>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        })
+        .catch(err => {
+            console.error('Failed to load report history:', err);
+            const container = document.getElementById('report-history');
+            container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">' + (currentLang === 'zh' ? '加载失败' : 'Failed to load') + '</p>';
+        });
+}
+</script>
+
+<style>
+/* 模板选择卡片 */
+.template-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background-color: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.template-card:hover {
+    border-color: var(--border-light);
+    background-color: rgba(30, 41, 59, 0.5);
+    transform: translateY(-2px);
+}
+
+.template-card-selected {
+    border-color: var(--accent-blue) !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.template-card-selected .template-check {
+    display: block;
+}
+
+.template-preview-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid;
+    transition: all 0.2s ease;
+}
+
+.template-info {
+    text-align: center;
+}
+
+.template-name {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.template-desc {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.template-check {
+    display: none;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+/* 预览模态框 */
+#preview-modal {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* 多选下拉框 */
+.multi-select-wrapper {
+    position: relative;
+}
+
+.multi-select-display {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    cursor: pointer;
+    min-height: 2.5rem;
+    position: relative;
+}
+
+.multi-select-display.filter-select {
+    min-height: 2rem;
+}
+
+.multi-select-placeholder {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.multi-select-placeholder.hidden {
+    display: none;
+}
+
+.multi-select-arrow {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.multi-select-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.multi-select-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1rem 0.5rem;
+    background-color: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 0.375rem;
+    color: var(--accent-blue-light);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.multi-select-tag:hover {
+    background-color: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--accent-red);
+}
+
+.multi-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    margin-top: 0.25rem;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    max-height: 15rem;
+    overflow-y: auto;
+    padding: 0.25rem;
+}
+
+.multi-select-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.multi-select-option:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.multi-select-option.selected {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue-light);
+}
+
+.multi-select-check {
+    font-size: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    width: 1rem;
+    text-align: center;
+}
+
+.multi-select-option.selected .multi-select-check {
+    opacity: 1;
+}
+
+.multi-select-option.disabled {
+    cursor: default;
+    padding: 0.75rem;
+    text-align: center;
+}
+
+.multi-select-option.disabled:hover {
+    background-color: transparent;
+}
+</style>
+{% endblock %}

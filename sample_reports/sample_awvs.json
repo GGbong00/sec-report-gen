@@ -1,0 +1,30 @@
+{
+  "vulnerabilities": [
+    {
+      "vt_id": "1",
+      "name": "SQL injection",
+      "severity": "high",
+      "affects_url": "http://192.168.1.100/login",
+      "description": "A SQL injection vulnerability has been discovered in the login page.",
+      "recommendation": "Use parameterized queries.",
+      "cve": "CVE-2024-0001"
+    },
+    {
+      "vt_id": "2",
+      "name": "Cross-site scripting",
+      "severity": "medium",
+      "affects_url": "http://192.168.1.100/search",
+      "description": "A reflected XSS vulnerability exists in the search functionality.",
+      "recommendation": "Encode all user-supplied output."
+    },
+    {
+      "vt_id": "3",
+      "name": "Apache Tomcat AJP Ghostcat",
+      "severity": "critical",
+      "affects_url": "http://192.168.1.100:8009",
+      "description": "The Apache Tomcat AJP connector is vulnerable to file read/include attacks.",
+      "recommendation": "Upgrade Tomcat to 9.0.31+.",
+      "cve": "CVE-2020-1938"
+    }
+  ]
+}
