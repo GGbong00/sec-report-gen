@@ -1,0 +1,13 @@
+node_modules/
+dist-electron/
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+data/sec_report.db
+data/custom_translations/
+uploads/*
+exports/*
+!uploads/.gitkeep
+!exports/.gitkeep
